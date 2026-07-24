@@ -1,0 +1,65 @@
+name: kirisiyo
+description: "Kırışıyo - Arkadaşlarla harcama paylaşım uygulaması (Tricount/Splitwise tarzı)"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # ── State Management ──────────────────────────────────────────────────────
+  provider: ^6.1.2
+
+  # ── Navigation ────────────────────────────────────────────────────────────
+  go_router: ^14.3.0
+
+  # ── Backend ───────────────────────────────────────────────────────────────
+  supabase_flutter: ^2.8.1
+
+  # ── Local Storage ─────────────────────────────────────────────────────────
+  shared_preferences: ^2.3.3
+
+  # ── Image / Camera ────────────────────────────────────────────────────────
+  image_picker: ^1.1.2
+  image_picker_for_web: ^3.0.6
+
+  # ── Utilities ─────────────────────────────────────────────────────────────
+  uuid: ^4.5.1
+  intl: ^0.19.0
+  equatable: ^2.0.7
+  http: ^1.2.2
+
+  # ── UI Helpers ────────────────────────────────────────────────────────────
+  flutter_animate: ^4.5.0
+  cached_network_image: ^3.4.1
+  emoji_picker_flutter: ^4.4.0
+  shimmer: ^3.0.0
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+
+  fonts:
+    - family: Nunito
+      fonts:
+        - asset: assets/fonts/Nunito-Regular.ttf
+        - asset: assets/fonts/Nunito-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Nunito-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Nunito-ExtraBold.ttf
+          weight: 800
