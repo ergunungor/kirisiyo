@@ -27,7 +27,7 @@ abstract interface class IRoomRepository {
 /// Oda repository implementasyonu.
 ///
 /// Supabase client erişimi [BaseRepository.client] üzerinden yapılır.
-class RoomRepository extends BaseRepository implements IRoomRepository {
+base class RoomRepository extends BaseRepository implements IRoomRepository {
   const RoomRepository();
 
   static const _roomsTable = 'rooms';
