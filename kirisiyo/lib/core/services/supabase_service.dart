@@ -26,7 +26,7 @@ class SupabaseService {
   /// main.dart içinde [initializeApp] çağrılmadan önce çağrılmalıdır.
   static Future<void> initialize() async {
     await Supabase.initialize(
-      url: _supabaseUrl,
+     url: _supabaseUrl,
       anonKey: _supabaseAnonKey,
       // TODO [Developer 5]: Realtime kanalları gerektiğinde burada aktif edin.
     );
