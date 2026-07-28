@@ -77,9 +77,6 @@ class RoomProvider extends ChangeNotifier {
   }
 
   /// Yeni oda oluşturur.
-  ///
-  /// TODO [Developer 2]: [_roomRepository.createRoom] çağrısı yapın.
-  ///   Başarı durumunda [_generatedRoomCode] set edin.
   Future<void> createRoom({
     required String name,
     required List<String> memberNames,
@@ -87,17 +84,16 @@ class RoomProvider extends ChangeNotifier {
     _setLoading();
 
     try {
-      // TODO [Developer 2]: Repository çağrısını implement edin.
-      //   final room = await _roomRepository.createRoom(
-      //     name: name,
-      //     memberNames: memberNames,
-      //   );
-      //   _currentRoom = room;
-      //   _generatedRoomCode = room.code;
-      //   await LocalStorageService.setString(
-      //     AppConstants.prefCurrentRoomCode,
-      //     room.code,
-      //   );
+      final room = await _roomRepository.createRoom(
+        name: name,
+        memberNames: memberNames,
+      );
+      _currentRoom = room;
+      _generatedRoomCode = room.code;
+      await LocalStorageService.setString(
+        AppConstants.prefCurrentRoomCode,
+        room.code,
+      );
       _setSuccess();
     } catch (e) {
       _setError(e.toString());
