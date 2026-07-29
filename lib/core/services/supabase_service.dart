@@ -15,11 +15,11 @@ class SupabaseService {
 
   /// Supabase URL'i — environment variable veya flutter_dotenv ile yönetin.
   // TODO [Developer 5]: Supabase projenizin URL'ini buraya ekleyin.
-  static const String _supabaseUrl = 'YOUR_SUPABASE_URL';
+  static const String _supabaseUrl = 'https://jucclctpanzvbudtkvwq.supabase.co';
 
   /// Supabase Anon Key'i.
   // TODO [Developer 5]: Supabase projenizin anon key'ini buraya ekleyin.
-  static const String _supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
+  static const String _supabaseAnonKey = 'sb_publishable_buDjT-QBUnM3tQI4xVdjwg_ohdUYucp';
 
   /// Supabase istemcisini başlatır.
   /// main.dart içinde [initializeApp] çağrılmadan önce çağrılmalıdır.
