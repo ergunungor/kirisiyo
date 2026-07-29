@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kirisiyo/features/receipt_scanner/services/ocr_service.dart';
 import 'package:provider/provider.dart';
 import 'app_theme.dart';
 import 'router.dart';
@@ -6,6 +7,7 @@ import '../features/room/providers/room_provider.dart';
 import '../features/expense/providers/expense_provider.dart';
 import '../features/balance/providers/balance_provider.dart';
 import '../features/receipt_scanner/providers/receipt_scanner_provider.dart';
+import '../features/receipt_scanner/screens/receipt_scanner_screen.dart';
 
 /// Kırışıyo ana uygulama widget'ı.
 ///
@@ -23,36 +25,30 @@ class KirisiyoApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         // ── Developer 2: Oda Yönetimi ────────────────────────────────────
-        ChangeNotifierProvider(
-          create: (_) => RoomProvider(),
-        ),
+        ChangeNotifierProvider(create: (_) => RoomProvider()),
 
         // ── Developer 3: Harcama Yönetimi ────────────────────────────────
-        ChangeNotifierProvider(
-          create: (_) => ExpenseProvider(),
-        ),
+        ChangeNotifierProvider(create: (_) => ExpenseProvider()),
 
         // ── Developer 5: Bakiye Motoru ────────────────────────────────────
-        ChangeNotifierProvider(
-          create: (_) => BalanceProvider(),
-        ),
+        ChangeNotifierProvider(create: (_) => BalanceProvider()),
 
         // ── Developer 4: Fiş Tarayıcı ────────────────────────────────────
         ChangeNotifierProvider(
-          create: (_) => ReceiptScannerProvider(),
+          create:
+              (_) => ReceiptScannerProvider(ocrService: const MockOcrService()),
         ),
       ],
-      child: MaterialApp.router(
+      child: MaterialApp(
         title: 'Kırışıyo',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.dark,
 
         // ── GoRouter Bağlantısı ───────────────────────────────────────────
-        routerConfig: appRouter,
-
+        // routerConfig: appRouter,
+        home: const ReceiptScannerScreen(roomCode: '123456'),
         // ── Lokalizasyon (Türkçe) ─────────────────────────────────────────
         locale: const Locale('tr', 'TR'),
-
         builder: (context, child) {
           // TODO [Developer 1]: Gerekirse global overlay'ler buraya eklenebilir
           //   Örn: connectivity banner, auth guard, etc.
