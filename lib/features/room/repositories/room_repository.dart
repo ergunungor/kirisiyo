@@ -1,6 +1,9 @@
+import 'package:kirisiyo/core/constants/app_constants.dart';
+
 import '../../../core/services/base_repository.dart';
 import '../../../core/utils/room_code_generator.dart';
 import '../models/room_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // supabase nesnesi için
 
 /// Oda repository arayüzü.
 ///
@@ -39,6 +42,7 @@ base class RoomRepository extends BaseRepository implements IRoomRepository {
     required List<String> memberNames,
   }) async {
     try {
+      // Benzersiz kod üretme metodumuzu çağırıyoruz
       final code = await _generateUniqueCode();
 
       final roomResponse = await client
@@ -139,6 +143,8 @@ base class RoomRepository extends BaseRepository implements IRoomRepository {
     }
   }
 
+  /// Supabase'de benzersiz olan bir oda kodu üretir.
+  /// Sonsuz döngüyü engellemek için maksimum 5 deneme yapar.
   Future<String> _generateUniqueCode() async {
     for (var attempt = 0; attempt < 5; attempt++) {
       final code = RoomCodeGenerator.generate();

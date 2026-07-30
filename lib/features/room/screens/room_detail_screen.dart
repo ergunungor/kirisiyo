@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kirisiyo/core/constants/app_constants.dart';
 import 'package:provider/provider.dart';
 import '../../../app/app_colors.dart';
 import '../../../app/app_spacing.dart';
@@ -9,6 +10,7 @@ import '../../../core/widgets/loading_widget.dart';
 import '../../../core/widgets/state_widgets.dart';
 import '../../../shared/widgets/shared_widgets.dart';
 import '../providers/room_provider.dart';
+import 'package:flutter/services.dart';
 
 /// Oda detay ekranı (ana hub).
 ///
@@ -19,7 +21,7 @@ import '../providers/room_provider.dart';
 ///   - Bakiyeler
 ///   - Oda Bilgileri
 ///
-/// TODO [Developer 2]: Bottom navigation ile sekme geçişini implement edin.
+
 class RoomDetailScreen extends StatefulWidget {
   const RoomDetailScreen({super.key, required this.roomCode});
 
@@ -35,7 +37,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
   @override
   void initState() {
     super.initState();
-    // TODO [Developer 2]: Oda bilgilerini provider üzerinden yükleyin.
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<RoomProvider>().loadRoomByCode(widget.roomCode);
     });
@@ -53,8 +55,15 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
             title: Text(room?.name ?? 'Oda'),
             actions: [
               IconButton(
-                onPressed: () {
-                  // TODO [Developer 2]: Oda paylaşım modalini aç.
+                onPressed: () async {
+                  // Senin bulduğun AppConstants metodunu çağırıyoruz
+                  final shareLink = AppConstants.roomInviteLink(widget.roomCode);
+                  await Clipboard.setData(ClipboardData(text: shareLink));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Davet bağlantısı kopyalandı!')),
+                    );
+                  }
                 },
                 icon: const Icon(Icons.share_rounded),
                 tooltip: 'Odayı Paylaş',
@@ -101,8 +110,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
   }
 
   Widget _buildExpensesTab(BuildContext context) {
-    // TODO [Developer 2 + Developer 3]: ExpensesScreen'i buraya entegre edin
-    //   veya doğrudan ExpensesScreen'e route edin.
+
     return const EmptyStateWidget(
       title: 'Henüz Harcama Yok',
       description: 'İlk harcamayı eklemek için + butonuna basın.',
