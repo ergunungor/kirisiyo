@@ -128,7 +128,7 @@ class RoomProvider extends ChangeNotifier {
   /// Aktif üyeyi seçer.
 Future<void> selectMember(MemberModel member) async {
     _currentMember = member;
-    // TODO çözüldü: LocalStorage entegrasyonu
+
     await LocalStorageService.setString(AppConstants.prefCurrentMemberId, member.id);
     notifyListeners();
   }
