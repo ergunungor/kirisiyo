@@ -9,7 +9,7 @@ abstract final class AppConstants {
 
   // ── Oda Ayarları ─────────────────────────────────────────────────────────
   /// Oda kodunun uzunluğu
-  static const int roomCodeLength = 6;
+  static const int roomCodeLength = 8;
 
   /// Bir odada izin verilen maksimum katılımcı sayısı
   static const int maxParticipants = 20;
