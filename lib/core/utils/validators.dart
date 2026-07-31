@@ -2,9 +2,7 @@ import 'dart:math';
 import '../../core/constants/app_constants.dart';
 
 /// Oda kodu üretici yardımcısı.
-///
-/// TODO [Developer 2]: Üretilen kodun Supabase'de benzersiz olduğunu
-/// doğrulamak için repository'de kontrol ekleyin.
+
 abstract final class RoomCodeGenerator {
   static final Random _random = Random.secure();
 
