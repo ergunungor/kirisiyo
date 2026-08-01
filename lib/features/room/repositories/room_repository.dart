@@ -47,7 +47,7 @@ base class RoomRepository extends BaseRepository implements IRoomRepository {
 
       final roomResponse = await client
           .from(_roomsTable)
-          .insert({'code': code, 'name': name})
+          .insert({'room_code': code, 'room_name': name})
           .select()
           .single();
 
@@ -78,7 +78,7 @@ base class RoomRepository extends BaseRepository implements IRoomRepository {
       final response = await client
           .from(_roomsTable)
           .select('*, room_members(*)')
-          .eq('code', code)
+          .eq('room_code', code)
           .maybeSingle();
 
       if (response == null) {
@@ -136,7 +136,7 @@ base class RoomRepository extends BaseRepository implements IRoomRepository {
   Future<bool> roomExists(String code) async {
     try {
       final response =
-          await client.from(_roomsTable).select('id').eq('code', code);
+          await client.from(_roomsTable).select('id').eq('room_code', code);
       return (response as List).isNotEmpty;
     } catch (e) {
       throw BackendException('Oda kontrol edilirken bir hata oluştu: $e');
