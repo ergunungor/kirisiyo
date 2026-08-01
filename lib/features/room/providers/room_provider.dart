@@ -53,11 +53,23 @@ class RoomProvider extends ChangeNotifier {
 
   // ── Aksiyon Metodları ────────────────────────────────────────────────────
 
-  /// Oda oluşturma flow'unda üye ismi ekler.
+/// Oda oluşturma flow'unda üye ismi ekler.
   void addMemberName(String name) {
-    if (name.trim().isEmpty) return;
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty) return;
     if (_pendingMemberNames.length >= AppConstants.maxParticipants) return;
-    _pendingMemberNames = [..._pendingMemberNames, name.trim()];
+
+    // Aynı ismin eklenmesini engelleme (Büyük/küçük harf duyarsız)
+    final isDuplicate = _pendingMemberNames.any(
+      (existing) => existing.toLowerCase() == trimmedName.toLowerCase(),
+    );
+    
+    if (isDuplicate) {
+      _setError('Bu isim zaten listeye eklenmiş.');
+      return;
+    }
+
+    _pendingMemberNames = [..._pendingMemberNames, trimmedName];
     notifyListeners();
   }
 
@@ -77,9 +89,6 @@ class RoomProvider extends ChangeNotifier {
   }
 
   /// Yeni oda oluşturur.
-  ///
-  /// TODO [Developer 2]: [_roomRepository.createRoom] çağrısı yapın.
-  ///   Başarı durumunda [_generatedRoomCode] set edin.
   Future<void> createRoom({
     required String name,
     required List<String> memberNames,
@@ -87,17 +96,16 @@ class RoomProvider extends ChangeNotifier {
     _setLoading();
 
     try {
-      // TODO [Developer 2]: Repository çağrısını implement edin.
-      //   final room = await _roomRepository.createRoom(
-      //     name: name,
-      //     memberNames: memberNames,
-      //   );
-      //   _currentRoom = room;
-      //   _generatedRoomCode = room.code;
-      //   await LocalStorageService.setString(
-      //     AppConstants.prefCurrentRoomCode,
-      //     room.code,
-      //   );
+      final room = await _roomRepository.createRoom(
+        name: name,
+        memberNames: memberNames,
+      );
+      _currentRoom = room;
+      _generatedRoomCode = room.code;
+      await LocalStorageService.setString(
+        AppConstants.prefCurrentRoomCode,
+        room.code,
+      );
       _setSuccess();
     } catch (e) {
       _setError(e.toString());
@@ -105,15 +113,12 @@ class RoomProvider extends ChangeNotifier {
   }
 
   /// Oda koduna göre odayı yükler.
-  ///
-  /// TODO [Developer 2]: [_roomRepository.getRoomByCode] çağrısı yapın.
   Future<void> loadRoomByCode(String code) async {
     _setLoading();
 
     try {
-      // TODO [Developer 2]: Repository çağrısını implement edin.
-      //   final room = await _roomRepository.getRoomByCode(code);
-      //   _currentRoom = room;
+      final room = await _roomRepository.getRoomByCode(code);
+      _currentRoom = room;
       _setSuccess();
     } catch (e) {
       _setError(e.toString());
@@ -121,10 +126,10 @@ class RoomProvider extends ChangeNotifier {
   }
 
   /// Aktif üyeyi seçer.
-  void selectMember(MemberModel member) {
+Future<void> selectMember(MemberModel member) async {
     _currentMember = member;
-    // TODO [Developer 2]: LocalStorage'a kaydet.
-    //   LocalStorageService.setString(AppConstants.prefCurrentMemberId, member.id);
+
+    await LocalStorageService.setString(AppConstants.prefCurrentMemberId, member.id);
     notifyListeners();
   }
 

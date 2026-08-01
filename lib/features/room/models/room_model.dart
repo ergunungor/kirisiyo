@@ -27,8 +27,8 @@ class RoomModel extends Equatable {
   factory RoomModel.fromJson(Map<String, dynamic> json) {
     return RoomModel(
       id: json['id'] as String,
-      code: json['code'] as String,
-      name: json['name'] as String,
+      code: json['room_code'] as String,
+      name: json['room_name'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
       members: (json['room_members'] as List<dynamic>?)
               ?.map((m) => MemberModel.fromJson(m as Map<String, dynamic>))
@@ -40,8 +40,8 @@ class RoomModel extends Equatable {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'code': code,
-      'name': name,
+      'room_code': code,
+      'room_name': name,
       'created_at': createdAt.toIso8601String(),
     };
   }
