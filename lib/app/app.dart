@@ -7,7 +7,6 @@ import '../features/room/providers/room_provider.dart';
 import '../features/expense/providers/expense_provider.dart';
 import '../features/balance/providers/balance_provider.dart';
 import '../features/receipt_scanner/providers/receipt_scanner_provider.dart';
-import '../features/receipt_scanner/screens/receipt_scanner_screen.dart';
 
 /// Kırışıyo ana uygulama widget'ı.
 ///
@@ -35,18 +34,14 @@ class KirisiyoApp extends StatelessWidget {
 
         // ── Developer 4: Fiş Tarayıcı ────────────────────────────────────
         ChangeNotifierProvider(
-          create:
-              (_) => ReceiptScannerProvider(ocrService: const MockOcrService()),
+          create: (_) => ReceiptScannerProvider(ocrService: OcrService()),
         ),
       ],
-      child: MaterialApp(
+      child: MaterialApp.router(
         title: 'Kırışıyo',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.dark,
-
-        // ── GoRouter Bağlantısı ───────────────────────────────────────────
-        // routerConfig: appRouter,
-        home: const ReceiptScannerScreen(roomCode: '123456'),
+        routerConfig: appRouter,
         // ── Lokalizasyon (Türkçe) ─────────────────────────────────────────
         locale: const Locale('tr', 'TR'),
         builder: (context, child) {

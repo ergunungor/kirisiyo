@@ -1,14 +1,16 @@
 import 'dart:math';
 
-/// 6 haneli benzersiz oda kodu üretici.
-///
-/// Developer 2 (Room Management) bu yardımcı sınıfı kullanır.
 abstract final class RoomCodeGenerator {
   static final Random _random = Random.secure();
 
-  /// 100000-999999 arası 6 haneli sayısal oda kodu üretir.
+  // I, O, 0 ve 1 bilinçli olarak çıkarıldı.
+  static const String _chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+  /// 8 karakterlik oda kodu üretir.
   static String generate() {
-    final code = _random.nextInt(900000) + 100000;
-    return code.toString();
+    return List.generate(
+      8,
+      (_) => _chars[_random.nextInt(_chars.length)],
+    ).join();
   }
 }

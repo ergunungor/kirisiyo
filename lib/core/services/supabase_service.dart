@@ -19,16 +19,24 @@ class SupabaseService {
 
   /// Supabase Anon Key'i.
   // TODO [Developer 5]: Supabase projenizin anon key'ini buraya ekleyin.
-  static const String _supabaseAnonKey = 'sb_publishable_buDjT-QBUnM3tQI4xVdjwg_ohdUYucp';
+  static const String _supabaseAnonKey =
+      'sb_publishable_buDjT-QBUnM3tQI4xVdjwg_ohdUYucp';
 
   /// Supabase istemcisini başlatır.
-  /// main.dart içinde [initializeApp] çağrılmadan önce çağrılmalıdır.
   static Future<void> initialize() async {
-    await Supabase.initialize(
-      url: _supabaseUrl,
-      anonKey: _supabaseAnonKey,
-      // TODO [Developer 5]: Realtime kanalları gerektiğinde burada aktif edin.
-    );
+    await Supabase.initialize(url: _supabaseUrl, anonKey: _supabaseAnonKey);
+
+    final client = Supabase.instance.client;
+
+    try {
+      if (client.auth.currentUser == null) {
+        await client.auth.signInAnonymously();
+      }
+
+      debugPrint('Current user: ${client.auth.currentUser?.id}');
+    } catch (e) {
+      debugPrint('Anonymous sign in failed: $e');
+    }
   }
 
   /// Supabase istemcisine erişim noktası.

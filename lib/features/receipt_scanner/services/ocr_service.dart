@@ -1,11 +1,7 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
-import 'receipt_parser.dart';
-
-// TODO: Kendi projendeki doğru import yollarını ayarla
-// import 'receipt_parser.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 /// OCR servis sonucu modeli.
 class OcrResult {
@@ -28,110 +24,74 @@ class OcrResult {
       'OcrResult(merchant: $merchantName, total: $totalAmount, confidence: $confidence)';
 }
 
+/// OCR servis arayüzü.
 abstract interface class IOcrService {
   Future<OcrResult> processImage(Uint8List imageBytes);
   Future<OcrResult> processImageFromUrl(String imageUrl);
 }
 
-/// OCR servis implementasyonu (Google Cloud Vision REST API).
+/// Gemini destekli OCR servis implementasyonu.
 class OcrService implements IOcrService {
-  const OcrService();
+  late final GenerativeModel _model;
 
-  // TODO: Ekip kanalından Google Cloud Vision API Key'i alıp buraya veya .env dosyasına eklemelisin.
-  static const String _apiKey = 'BURAYA_API_KEY_GELECEK';
-  static const String _apiUrl =
-      'https://vision.googleapis.com/v1/images:annotate?key=$_apiKey';
+  OcrService() {
+    _model = GenerativeModel(
+      model: 'gemini-3.5-flash-lite',
+      apiKey: 'YOUR_API_KEY', // Güvenli bir yerden çekmen önerilir
+      systemInstruction: Content.system('''
+        Sen bir fiş analiz asistanısın. Gönderilen fiş görselinden şu verileri çıkar:
+        1. Mağaza Adı (merchant)
+        2. Toplam Tutar (total) - sadece sayısal değer (örneğin 125.50)
+        
+        Çıktıyı SADECE JSON formatında ver: {"merchant": "...", "total": 0.0}
+        Başka hiçbir metin veya markdown bloğu ekleme.
+      '''),
+    );
+  }
 
   @override
   Future<OcrResult> processImage(Uint8List imageBytes) async {
     try {
-      // 1. Görseli Base64 formatına çevir (API'nin beklediği format)
-      final base64Image = base64Encode(imageBytes);
-
-      // 2. Google Cloud Vision için istek gövdesini hazırla
-      final requestBody = {
-        'requests': [
-          {
-            'image': {'content': base64Image},
-            'features': [
-              {'type': 'DOCUMENT_TEXT_DETECTION'},
-            ],
-          },
-        ],
-      };
-
-      // 3. API'ye gönder
-      final response = await http.post(
-        Uri.parse(_apiUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(requestBody),
-      );
-
-      if (response.statusCode != 200) {
-        debugPrint('OCR API Hatası: ${response.statusCode} - ${response.body}');
-        return const OcrResult();
+      Future<Uint8List> _optimizeImage(Uint8List imageBytes) async {
+        // Görseli 800px genişliğe çek ve %50 kaliteye düşür.
+        // Bu işlem, görsel boyutunu MB'lardan KB'lara düşürür.
+        return await FlutterImageCompress.compressWithList(
+          imageBytes,
+          minWidth: 800,
+          minHeight: 800,
+          quality: 50,
+        );
       }
 
-      final responseData = jsonDecode(response.body);
-      final responses = responseData['requests'] as List?;
+      final response = await _model.generateContent([
+        Content.multi([
+          TextPart('Bu fişi analiz et.'),
+          DataPart('image/jpeg', imageBytes),
+        ]),
+      ]);
 
-      if (responses == null || responses.isEmpty) {
-        return const OcrResult();
-      }
+      final responseText = response.text ?? '';
 
-      // 4. API'den dönen ham metni al
-      final annotations = responses.first['textAnnotations'] as List?;
-      if (annotations == null || annotations.isEmpty) {
-        return const OcrResult();
-      }
+      // JSON temizleme (Markdown işaretlerini satır bölünmeden tek satırda temizliyoruz)
+      final cleanJson =
+          responseText.replaceAll('```json', '').replaceAll('```', '').trim();
 
-      final String rawText = annotations.first['description'] ?? '';
+      final Map<String, dynamic> data = jsonDecode(cleanJson);
 
-      // 5. Metni daha önce yazdığımız parser ile anlamlı veriye çevir
-      final parsedData = ReceiptParser.parse(rawText);
-
-      // 6. Sonucu döndür
       return OcrResult(
-        merchantName: parsedData.merchantName,
-        totalAmount: parsedData.totalAmount,
-        rawText: rawText,
-        confidence:
-            1.0, // REST üzerinden basit text detection'da genellikle sabit kabul edebiliriz
+        merchantName: data['merchant']?.toString(),
+        totalAmount: (data['total'] as num?)?.toDouble(),
+        rawText: responseText,
+        confidence: 1.0,
       );
     } catch (e) {
-      debugPrint('OCR İşlem Hatası: $e');
+      debugPrint('Gemini OCR Hatası: $e');
       return const OcrResult();
     }
   }
 
   @override
   Future<OcrResult> processImageFromUrl(String imageUrl) async {
-    // MVP aşamasında cihazdan/kameradan yüklenen dosyaları baz aldığımız için
-    // şimdilik bu kısmı boş bırakıyoruz, sadece Web URL'leri desteklemek gerekirse doldurulur.
-    throw UnimplementedError('processImageFromUrl henüz implemente edilmedi.');
-  }
-}
-
-/// Arayüz geliştirmeleri için Sahte (Mock) OCR Servisi
-class MockOcrService implements IOcrService {
-  const MockOcrService();
-
-  @override
-  Future<OcrResult> processImage(Uint8List imageBytes) async {
-    // İnternet gecikmesini simüle etmek için 2 saniye bekletiyoruz
-    await Future.delayed(const Duration(seconds: 2));
-
-    // Sanki başarılı bir şekilde fiş okunmuş gibi sahte veri dönüyoruz
-    return const OcrResult(
-      merchantName: 'KAHVE DÜNYASI',
-      totalAmount: 145.50,
-      rawText: 'KAHVE DÜNYASI\nFİŞ NO: 1234\nTOPLAM 145,50\nKDV DAHİLDİR',
-      confidence: 0.95,
-    );
-  }
-
-  @override
-  Future<OcrResult> processImageFromUrl(String imageUrl) async {
-    throw UnimplementedError();
+    throw UnimplementedError('Bu metot henüz kullanılmıyor.');
   }
 }
