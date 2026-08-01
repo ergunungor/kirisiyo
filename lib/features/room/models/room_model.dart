@@ -30,7 +30,8 @@ class RoomModel extends Equatable {
       code: json['room_code'] as String,
       name: json['room_name'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
-      members: (json['room_members'] as List<dynamic>?)
+      members:
+          (json['room_members'] as List<dynamic>?)
               ?.map((m) => MemberModel.fromJson(m as Map<String, dynamic>))
               .toList() ??
           [],
@@ -95,7 +96,9 @@ class MemberModel extends Equatable {
       id: json['id'] as String,
       roomId: json['room_id'] as String,
       name: json['name'] as String,
-      joinedAt: DateTime.parse(json['joined_at'] as String),
+      joinedAt: DateTime.parse(
+        json['created_at'] as String,
+      ), // <--- SADECE BURASI DEĞİŞTİ
     );
   }
 
