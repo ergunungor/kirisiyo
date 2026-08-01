@@ -49,3 +49,4 @@ app.*.map.json
 *.env
 firebase_options.dart
 .dart_tool/
+.vscode/
