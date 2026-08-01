@@ -15,7 +15,7 @@ import '../models/expense_model.dart';
 import '../providers/expense_provider.dart';
 import '../../room/providers/room_provider.dart';
 import '../../room/models/room_model.dart';
-
+import 'package:uuid/uuid.dart';
 /// Harcama ekleme ekranı.
 ///
 /// Developer 3 (Expense Management) bu ekranı yönetir.
@@ -45,12 +45,38 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   DateTime _selectedDate = DateTime.now();
   String? _selectedEmoji;
   String? _paidByMemberId;
+  // --- Developer 3: Bölüşüm Mantığı Değişkenleri ---
+  List<String> _selectedMemberIds = []; 
+  SplitType _splitType = SplitType.equal; 
+  Map<String, double> _customSplits = {};
 
   @override
   void dispose() {
     _titleController.dispose();
     _amountController.dispose();
     super.dispose();
+  }
+
+  // Tutar girildiğinde veya kişi seçildiğinde eşit bölüşümü hesaplayan fonksiyon
+  void _calculateEqualSplit() {
+    if (_selectedMemberIds.isEmpty) return;
+
+    // Girilen tutarı al (virgülü noktaya çevir ki matematiksel hata vermesin)
+    final amountText = _amountController.text.replaceAll(',', '.');
+    final double totalAmount = double.tryParse(amountText) ?? 0.0;
+
+    if (totalAmount <= 0) return;
+
+    // Toplam tutarı seçili kişi sayısına eşit olarak böl
+    final double splitAmount = totalAmount / _selectedMemberIds.length;
+
+    // Ekranı güncelle ve herkesin payını _customSplits listesine yaz
+    setState(() {
+      _customSplits.clear(); // Önceki hesaplamayı temizle
+      for (var memberId in _selectedMemberIds) {
+        _customSplits[memberId] = splitAmount;
+      }
+    });
   }
 
   @override
@@ -318,13 +344,60 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           onSelectionChanged: (s) => provider.setSplitType(s.first),
         ),
         const SizedBox(height: AppSpacing.md),
-        // TODO [Developer 3]: Katılımcı seçimi ve özel tutar girişini implement edin.
-        Text(
-          'TODO [Developer 3]: Katılımcı seçim ve bölüştürme UI\'ını implement edin.',
-          style: AppTextStyles.bodySmall.copyWith(
-            color: AppColors.warning,
-          ),
-        ),
+        // --- Developer 3: Katılımcı Seçimi (Adım 6) ---
+            // --- Developer 3: Katılımcı Seçimi ve Özel Tutar Girişi (Adım 6 & 8) ---
+            Column(
+              children: members.map((member) {
+                final isSelected = _selectedMemberIds.contains(member.id);
+                
+                return Column(
+                  children: [
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: Text(member.name ?? 'Bilinmeyen Kullanıcı'),
+                      value: isSelected,
+                      activeColor: AppColors.primary,
+                      onChanged: (bool? checked) {
+                        setState(() {
+                          if (checked == true) {
+                            _selectedMemberIds.add(member.id);
+                          } else {
+                            _selectedMemberIds.remove(member.id);
+                            _customSplits.remove(member.id); // Kişi listeden çıkarsa borcunu da sıfırla
+                          }
+                          
+                          // Eğer eşit bölüşümdeysek, kişi sayısı değiştiği için hesabı güncelle
+                          if (_splitType == SplitType.equal) {
+                            _calculateEqualSplit();
+                          }
+                        });
+                      },
+                    ),
+                    // Sadece "Özel" (Custom) bölüşüm seçiliyse ve kişi işaretliyse tutar kutucuğunu göster
+                    if (_splitType == SplitType.custom && isSelected)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 48.0, right: 16.0, bottom: 8.0),
+                        child: TextFormField(
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: 'Ödeyeceği Tutar',
+                            prefixText: '₺ ',
+                          ),
+                          initialValue: _customSplits[member.id]?.toString() ?? '',
+                          onChanged: (value) {
+                            // Girilen virgüllü sayıyı noktaya çevirip arka plandaki listeye kaydet
+                            final parsedValue = double.tryParse(value.replaceAll(',', '.')) ?? 0.0;
+                            setState(() {
+                              _customSplits[member.id] = parsedValue;
+                            });
+                          },
+                        ),
+                      ),
+                  ],
+                );
+              }).toList(),
+            ),
       ],
     );
   }
@@ -340,20 +413,37 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       return;
     }
 
-    // TODO [Developer 3]: ExpenseModel oluşturup provider.createExpense() çağırın.
-    //   final expense = ExpenseModel(
-    //     id: const Uuid().v4(),
-    //     roomId: roomId,
-    //     title: _titleController.text.trim(),
-    //     amount: double.parse(_amountController.text.replaceAll(',', '.')),
-    //     paidByMemberId: _paidByMemberId!,
-    //     date: _selectedDate,
-    //     createdAt: DateTime.now(),
-    //     emoji: _selectedEmoji,
-    //     splitType: provider.splitType,
-    //   );
-    //   await provider.createExpense(expense);
+   // Provider'ları ve aktif odayı context üzerinden buluyoruz
+    final expenseProvider = context.read<ExpenseProvider>();
+    final roomProvider = context.read<RoomProvider>();
+    final roomId = roomProvider.currentRoom?.id ?? '';
 
+    if (roomId.isEmpty) return; // Hata durumunda kaydetmeyi durdur
+
+ // Harcama için ortak bir benzersiz ID oluşturalım
+    final String generatedExpenseId = const Uuid().v4();
+
+    // Kendi hesapladığımız verilerle harcama modelini oluşturuyoruz
+    final expense = ExpenseModel(
+      id: generatedExpenseId, // Ürettiğimiz ID'yi buraya veriyoruz
+      roomId: roomId,
+      title: _titleController.text.trim(),
+      amount: double.parse(_amountController.text.replaceAll(',', '.')),
+      paidByMemberId: _paidByMemberId!,
+      date: _selectedDate,
+      createdAt: DateTime.now(),
+      emoji: _selectedEmoji,
+      splitType: _splitType, 
+      splits: _customSplits.entries.map((entry) => ExpenseSplitModel(
+        id: const Uuid().v4(), // Her bir pay/borç için benzersiz ID
+        expenseId: generatedExpenseId, // Bu payın yukarıdaki harcamaya ait olduğunu belirtiyoruz
+        memberId: entry.key,
+        amount: entry.value,
+      )).toList(),
+    );
+
+    // Veritabanına (Supabase) yolla
+    await expenseProvider.createExpense(expense);
     if (!provider.hasError && context.mounted) {
       context.pop();
     }
