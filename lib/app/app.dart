@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:kirisiyo/features/receipt_scanner/services/ocr_service.dart';
 import 'package:provider/provider.dart';
 import 'app_theme.dart';
 import 'router.dart';
 import '../features/room/providers/room_provider.dart';
 import '../features/expense/providers/expense_provider.dart';
 import '../features/balance/providers/balance_provider.dart';
-import '../features/receipt_scanner/providers/receipt_scanner_provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 /// Kırışıyo ana uygulama widget'ı.
 ///
@@ -31,11 +30,6 @@ class KirisiyoApp extends StatelessWidget {
 
         // ── Developer 5: Bakiye Motoru ────────────────────────────────────
         ChangeNotifierProvider(create: (_) => BalanceProvider()),
-
-        // ── Developer 4: Fiş Tarayıcı ────────────────────────────────────
-        ChangeNotifierProvider(
-          create: (_) => ReceiptScannerProvider(ocrService: OcrService()),
-        ),
       ],
       child: MaterialApp.router(
         title: 'Kırışıyo',
@@ -49,6 +43,16 @@ class KirisiyoApp extends StatelessWidget {
           //   Örn: connectivity banner, auth guard, etc.
           return child ?? const SizedBox.shrink();
         },
+
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('tr', 'TR'), // Uygulamanın ana dili Türkçe
+          Locale('en', 'US'), // Yedek olarak İngilizce
+        ],
       ),
     );
   }

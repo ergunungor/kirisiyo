@@ -86,9 +86,10 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
                 const SizedBox(height: AppSpacing.xxl),
                 AppButton(
                   label: 'Odayı Bul',
-                  onPressed: provider.isLoading
-                      ? null
-                      : () => _joinRoom(context, provider),
+                  onPressed:
+                      provider.isLoading
+                          ? null
+                          : () => _joinRoom(context, provider),
                   isLoading: provider.isLoading,
                   icon: Icons.search_rounded,
                 ),
@@ -121,7 +122,9 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
     if (provider.hasError) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(provider.errorMessage ?? AppConstants.errorRoomNotFound),
+          content: Text(
+            provider.errorMessage ?? AppConstants.errorRoomNotFound,
+          ),
         ),
       );
       return;

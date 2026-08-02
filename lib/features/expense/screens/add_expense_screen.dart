@@ -4,18 +4,17 @@ import 'package:provider/provider.dart';
 import '../../../app/app_colors.dart';
 import '../../../app/app_spacing.dart';
 import '../../../app/app_text_styles.dart';
-import '../../../app/router.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/app_card.dart';
-import '../../../shared/widgets/shared_widgets.dart';
 import '../models/expense_model.dart';
 import '../providers/expense_provider.dart';
 import '../../room/providers/room_provider.dart';
 import '../../room/models/room_model.dart';
 import 'package:uuid/uuid.dart';
+
 /// Harcama ekleme ekranı.
 ///
 /// Developer 3 (Expense Management) bu ekranı yönetir.
@@ -46,8 +45,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   String? _selectedEmoji;
   String? _paidByMemberId;
   // --- Developer 3: Bölüşüm Mantığı Değişkenleri ---
-  List<String> _selectedMemberIds = []; 
-  SplitType _splitType = SplitType.equal; 
+  List<String> _selectedMemberIds = [];
+  SplitType _splitType = SplitType.equal;
   Map<String, double> _customSplits = {};
 
   @override
@@ -92,8 +91,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints:
-              const BoxConstraints(maxWidth: AppSpacing.maxContentWidth),
+          constraints: const BoxConstraints(
+            maxWidth: AppSpacing.maxContentWidth,
+          ),
           child: Consumer2<ExpenseProvider, RoomProvider>(
             builder: (context, expenseProvider, roomProvider, _) {
               final room = roomProvider.currentRoom;
@@ -115,9 +115,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       prefixIcon: Icons.title_rounded,
                       maxLength: AppConstants.expenseTitleMaxLength,
                       textCapitalization: TextCapitalization.sentences,
-                      validator: (v) => v == null || v.trim().isEmpty
-                          ? 'Başlık boş bırakılamaz.'
-                          : null,
+                      validator:
+                          (v) =>
+                              v == null || v.trim().isEmpty
+                                  ? 'Başlık boş bırakılamaz.'
+                                  : null,
                     ),
                     const SizedBox(height: AppSpacing.md),
 
@@ -126,28 +128,28 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     const SizedBox(height: AppSpacing.md),
 
                     // ── Ödeyeni seç ───────────────────────────────────────
-                    if (room != null)
-                      _buildPaidBySelector(room.members),
+                    if (room != null) _buildPaidBySelector(room.members),
                     const SizedBox(height: AppSpacing.md),
 
                     // ── Emoji seç ─────────────────────────────────────────
                     _buildEmojiSelector(),
                     const SizedBox(height: AppSpacing.md),
 
-                    // ── Fiş tarama kısayolu ───────────────────────────────
-                    _buildScanReceiptShortcut(context),
-                    const SizedBox(height: AppSpacing.xl),
-
                     // ── Bölüştürme ────────────────────────────────────────
-                    _buildSplitSection(context, expenseProvider, room?.members ?? []),
+                    _buildSplitSection(
+                      context,
+                      expenseProvider,
+                      room?.members ?? [],
+                    ),
                     const SizedBox(height: AppSpacing.xxl),
 
                     // ── Kaydet ────────────────────────────────────────────
                     AppButton(
                       label: 'Harcamayı Kaydet',
-                      onPressed: expenseProvider.isLoading
-                          ? null
-                          : () => _saveExpense(context, expenseProvider),
+                      onPressed:
+                          expenseProvider.isLoading
+                              ? null
+                              : () => _saveExpense(context, expenseProvider),
                       isLoading: expenseProvider.isLoading,
                       icon: Icons.save_rounded,
                     ),
@@ -188,16 +190,22 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       },
       child: Row(
         children: [
-          const Icon(Icons.calendar_today_rounded,
-              color: AppColors.textSecondary, size: 20),
+          const Icon(
+            Icons.calendar_today_rounded,
+            color: AppColors.textSecondary,
+            size: 20,
+          ),
           const SizedBox(width: AppSpacing.sm),
           Text(
             DateFormatter.formatLong(_selectedDate),
             style: AppTextStyles.bodyMedium,
           ),
           const Spacer(),
-          const Icon(Icons.arrow_forward_ios_rounded,
-              size: 14, color: AppColors.textSecondary),
+          const Icon(
+            Icons.arrow_forward_ios_rounded,
+            size: 14,
+            color: AppColors.textSecondary,
+          ),
         ],
       ),
     );
@@ -227,11 +235,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     vertical: AppSpacing.sm,
                   ),
                   decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.primary.withOpacity(0.2)
-                        : AppColors.surface,
-                    borderRadius:
-                        BorderRadius.circular(AppSpacing.radiusRound),
+                    color:
+                        isSelected
+                            ? AppColors.primary.withOpacity(0.2)
+                            : AppColors.surface,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusRound),
                     border: Border.all(
                       color: isSelected ? AppColors.primary : AppColors.divider,
                       width: isSelected ? 2 : 1,
@@ -240,7 +248,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   child: Text(
                     member.name,
                     style: AppTextStyles.labelMedium.copyWith(
-                      color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                      color:
+                          isSelected
+                              ? AppColors.primary
+                              : AppColors.textPrimary,
                     ),
                   ),
                 ),
@@ -260,57 +271,17 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       },
       child: Row(
         children: [
-          Text(
-            _selectedEmoji ?? '😊',
-            style: const TextStyle(fontSize: 28),
-          ),
+          Text(_selectedEmoji ?? '😊', style: const TextStyle(fontSize: 28)),
           const SizedBox(width: AppSpacing.md),
           Text(
             _selectedEmoji != null ? 'Emoji seçildi' : 'Emoji Seç',
             style: AppTextStyles.bodyMedium,
           ),
           const Spacer(),
-          const Icon(Icons.chevron_right_rounded,
-              color: AppColors.textSecondary),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildScanReceiptShortcut(BuildContext context) {
-    return AppCard(
-      onTap: () =>
-          context.push(AppRoutes.receiptScannerPath(widget.roomCode)),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-            ),
-            child: const Icon(
-              Icons.document_scanner_rounded,
-              color: Colors.white,
-              size: 20,
-            ),
+          const Icon(
+            Icons.chevron_right_rounded,
+            color: AppColors.textSecondary,
           ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Fiş Tara', style: AppTextStyles.labelMedium),
-                Text(
-                  'Kamera veya galeriden fiş yükle',
-                  style: AppTextStyles.bodySmall,
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right_rounded,
-              color: AppColors.textSecondary),
         ],
       ),
     );
@@ -345,11 +316,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         ),
         const SizedBox(height: AppSpacing.md),
         // --- Developer 3: Katılımcı Seçimi (Adım 6) ---
-            // --- Developer 3: Katılımcı Seçimi ve Özel Tutar Girişi (Adım 6 & 8) ---
-            Column(
-              children: members.map((member) {
+        // --- Developer 3: Katılımcı Seçimi ve Özel Tutar Girişi (Adım 6 & 8) ---
+        Column(
+          children:
+              members.map((member) {
                 final isSelected = _selectedMemberIds.contains(member.id);
-                
+
                 return Column(
                   children: [
                     CheckboxListTile(
@@ -364,9 +336,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                             _selectedMemberIds.add(member.id);
                           } else {
                             _selectedMemberIds.remove(member.id);
-                            _customSplits.remove(member.id); // Kişi listeden çıkarsa borcunu da sıfırla
+                            _customSplits.remove(
+                              member.id,
+                            ); // Kişi listeden çıkarsa borcunu da sıfırla
                           }
-                          
+
                           // Eğer eşit bölüşümdeysek, kişi sayısı değiştiği için hesabı güncelle
                           if (_splitType == SplitType.equal) {
                             _calculateEqualSplit();
@@ -377,17 +351,26 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     // Sadece "Özel" (Custom) bölüşüm seçiliyse ve kişi işaretliyse tutar kutucuğunu göster
                     if (_splitType == SplitType.custom && isSelected)
                       Padding(
-                        padding: const EdgeInsets.only(left: 48.0, right: 16.0, bottom: 8.0),
+                        padding: const EdgeInsets.only(
+                          left: 48.0,
+                          right: 16.0,
+                          bottom: 8.0,
+                        ),
                         child: TextFormField(
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
                           decoration: const InputDecoration(
                             labelText: 'Ödeyeceği Tutar',
                             prefixText: '₺ ',
                           ),
-                          initialValue: _customSplits[member.id]?.toString() ?? '',
+                          initialValue:
+                              _customSplits[member.id]?.toString() ?? '',
                           onChanged: (value) {
                             // Girilen virgüllü sayıyı noktaya çevirip arka plandaki listeye kaydet
-                            final parsedValue = double.tryParse(value.replaceAll(',', '.')) ?? 0.0;
+                            final parsedValue =
+                                double.tryParse(value.replaceAll(',', '.')) ??
+                                0.0;
                             setState(() {
                               _customSplits[member.id] = parsedValue;
                             });
@@ -397,30 +380,32 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   ],
                 );
               }).toList(),
-            ),
+        ),
       ],
     );
   }
 
   Future<void> _saveExpense(
-      BuildContext context, ExpenseProvider provider) async {
+    BuildContext context,
+    ExpenseProvider provider,
+  ) async {
     if (!_formKey.currentState!.validate()) return;
 
     if (_paidByMemberId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen ödeyeni seçin.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Lütfen ödeyeni seçin.')));
       return;
     }
 
-   // Provider'ları ve aktif odayı context üzerinden buluyoruz
+    // Provider'ları ve aktif odayı context üzerinden buluyoruz
     final expenseProvider = context.read<ExpenseProvider>();
     final roomProvider = context.read<RoomProvider>();
     final roomId = roomProvider.currentRoom?.id ?? '';
 
     if (roomId.isEmpty) return; // Hata durumunda kaydetmeyi durdur
 
- // Harcama için ortak bir benzersiz ID oluşturalım
+    // Harcama için ortak bir benzersiz ID oluşturalım
     final String generatedExpenseId = const Uuid().v4();
 
     // Kendi hesapladığımız verilerle harcama modelini oluşturuyoruz
@@ -433,13 +418,19 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       date: _selectedDate,
       createdAt: DateTime.now(),
       emoji: _selectedEmoji,
-      splitType: _splitType, 
-      splits: _customSplits.entries.map((entry) => ExpenseSplitModel(
-        id: const Uuid().v4(), // Her bir pay/borç için benzersiz ID
-        expenseId: generatedExpenseId, // Bu payın yukarıdaki harcamaya ait olduğunu belirtiyoruz
-        memberId: entry.key,
-        amount: entry.value,
-      )).toList(),
+      splitType: _splitType,
+      splits:
+          _customSplits.entries
+              .map(
+                (entry) => ExpenseSplitModel(
+                  id: const Uuid().v4(), // Her bir pay/borç için benzersiz ID
+                  expenseId:
+                      generatedExpenseId, // Bu payın yukarıdaki harcamaya ait olduğunu belirtiyoruz
+                  memberId: entry.key,
+                  amount: entry.value,
+                ),
+              )
+              .toList(),
     );
 
     // Veritabanına (Supabase) yolla

@@ -64,9 +64,10 @@ class AppTextField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: prefixIcon != null
-            ? Icon(prefixIcon, color: AppColors.textSecondary)
-            : null,
+        prefixIcon:
+            prefixIcon != null
+                ? Icon(prefixIcon, color: AppColors.textSecondary)
+                : null,
         suffixIcon: suffixIcon,
         counterText: '',
       ),
@@ -112,14 +113,9 @@ class AppAmountTextField extends StatelessWidget {
         border: InputBorder.none,
         enabledBorder: InputBorder.none,
         focusedBorder: UnderlineInputBorder(
-          borderSide: BorderSide(
-            color: AppColors.primary,
-            width: 2,
-          ),
+          borderSide: BorderSide(color: AppColors.primary, width: 2),
         ),
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: AppSpacing.sm,
-        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       ),
     );
   }
@@ -147,7 +143,7 @@ class AppRoomCodeTextField extends StatelessWidget {
       validator: validator,
       onChanged: onChanged,
       autofocus: autofocus,
-      maxLength: 6,
+      maxLength: 8,
       textCapitalization: TextCapitalization.characters,
       textAlign: TextAlign.center,
       keyboardType: TextInputType.text,
