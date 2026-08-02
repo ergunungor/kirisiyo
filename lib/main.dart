@@ -18,7 +18,11 @@ void main() async {
     url: supabaseUrl,
     publishableKey: supabaseAnonKey,
   );
-  await SupabaseService.ensureAnonymousSession();
+  try {
+    await SupabaseService.ensureAnonymousSession();
+  } catch (e) {
+    debugPrint('[Kirisiyo] Anonymous session hatası: $e');
+  }
 
   runApp(const KirisiyoApp());
 }

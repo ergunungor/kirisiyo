@@ -1,11 +1,11 @@
 {
-    "name": "kirisiyo_app",
-    "short_name": "kirisiyo_app",
+    "name": "Kirisiyo",
+    "short_name": "Kirisiyo",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#F8F9FC",
+    "theme_color": "#2E5BFF",
+    "description": "Arkadaşlarınla harcamalarını kolayca paylaş",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
