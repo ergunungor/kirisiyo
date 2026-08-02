@@ -1,9 +1,6 @@
-import 'package:kirisiyo/core/constants/app_constants.dart';
-
 import '../../../core/services/base_repository.dart';
 import '../../../core/utils/room_code_generator.dart';
 import '../models/room_model.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // supabase nesnesi için
 
 /// Oda repository arayüzü.
 ///
@@ -19,7 +16,10 @@ abstract interface class IRoomRepository {
 
   Future<RoomModel> getRoomById(String id);
 
-  Future<MemberModel> addMember({required String roomId, required String name});
+  Future<MemberModel> addMember({
+    required String roomId,
+    required String name,
+  });
 
   Future<bool> roomExists(String code);
 }
@@ -39,40 +39,26 @@ base class RoomRepository extends BaseRepository implements IRoomRepository {
     required List<String> memberNames,
   }) async {
     try {
-      // Benzersiz kod üretme metodumuzu çağırıyoruz
       final code = await _generateUniqueCode();
 
-final roomResponse = await client
+      final roomResponse = await client
           .from(_roomsTable)
-          .insert({'room_code': code, 'room_name': name})
+          .insert({'code': code, 'name': name})
           .select()
           .single();
 
       final room = RoomModel.fromJson(roomResponse);
 
-      print("3 - Üyeler ekleniyor");
-      final uid = client.auth.currentUser?.id;
-
-      final memberRows =
-          memberNames
-              .map(
-                (memberName) => {
-                  'room_id': room.id,
-                  'name': memberName,
-                  'auth_user_id': null,
-                },
-              )
-              .toList();
+      final memberRows = memberNames
+          .map((memberName) => {'room_id': room.id, 'name': memberName})
+          .toList();
 
       final membersResponse =
           await client.from(_membersTable).insert(memberRows).select();
 
-      final members =
-          (membersResponse as List)
-              .map((m) => MemberModel.fromJson(m as Map<String, dynamic>))
-              .toList();
-
-      print("4 - Üyeler eklendi");
+      final members = (membersResponse as List)
+          .map((m) => MemberModel.fromJson(m as Map<String, dynamic>))
+          .toList();
 
       return room.copyWith(members: members);
     } on RepositoryException {
@@ -85,10 +71,10 @@ final roomResponse = await client
   @override
   Future<RoomModel> getRoomByCode(String code) async {
     try {
-final response = await client
+      final response = await client
           .from(_roomsTable)
           .select('*, room_members(*)')
-          .eq('room_code', code)
+          .eq('code', code)
           .maybeSingle();
 
       if (response == null) {
@@ -106,12 +92,11 @@ final response = await client
   @override
   Future<RoomModel> getRoomById(String id) async {
     try {
-      final response =
-          await client
-              .from(_roomsTable)
-              .select('*, room_members(*)')
-              .eq('id', id)
-              .maybeSingle();
+      final response = await client
+          .from(_roomsTable)
+          .select('*, room_members(*)')
+          .eq('id', id)
+          .maybeSingle();
 
       if (response == null) {
         throw const NotFoundException('Oda bulunamadı.');
@@ -131,16 +116,11 @@ final response = await client
     required String name,
   }) async {
     try {
-      final response =
-          await client
-              .from(_membersTable)
-              .insert({
-                'room_id': roomId,
-                'name': name,
-                'auth_user_id': client.auth.currentUser?.id,
-              })
-              .select()
-              .single();
+      final response = await client
+          .from(_membersTable)
+          .insert({'room_id': roomId, 'name': name})
+          .select()
+          .single();
 
       return MemberModel.fromJson(response);
     } catch (e) {
@@ -151,18 +131,14 @@ final response = await client
   @override
   Future<bool> roomExists(String code) async {
     try {
-final response = await client
-          .from(_roomsTable)
-          .select('id')
-          .eq('room_code', code);
+      final response =
+          await client.from(_roomsTable).select('id').eq('code', code);
       return (response as List).isNotEmpty;
     } catch (e) {
       throw BackendException('Oda kontrol edilirken bir hata oluştu: $e');
     }
   }
 
-  /// Supabase'de benzersiz olan bir oda kodu üretir.
-  /// Sonsuz döngüyü engellemek için maksimum 5 deneme yapar.
   Future<String> _generateUniqueCode() async {
     for (var attempt = 0; attempt < 5; attempt++) {
       final code = RoomCodeGenerator.generate();
