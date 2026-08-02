@@ -19,10 +19,7 @@ abstract interface class IRoomRepository {
 
   Future<RoomModel> getRoomById(String id);
 
-  Future<MemberModel> addMember({
-    required String roomId,
-    required String name,
-  });
+  Future<MemberModel> addMember({required String roomId, required String name});
 
   Future<bool> roomExists(String code);
 }
@@ -45,7 +42,7 @@ base class RoomRepository extends BaseRepository implements IRoomRepository {
       // Benzersiz kod üretme metodumuzu çağırıyoruz
       final code = await _generateUniqueCode();
 
-      final roomResponse = await client
+final roomResponse = await client
           .from(_roomsTable)
           .insert({'room_code': code, 'room_name': name})
           .select()
@@ -53,16 +50,29 @@ base class RoomRepository extends BaseRepository implements IRoomRepository {
 
       final room = RoomModel.fromJson(roomResponse);
 
-      final memberRows = memberNames
-          .map((memberName) => {'room_id': room.id, 'name': memberName})
-          .toList();
+      print("3 - Üyeler ekleniyor");
+      final uid = client.auth.currentUser?.id;
+
+      final memberRows =
+          memberNames
+              .map(
+                (memberName) => {
+                  'room_id': room.id,
+                  'name': memberName,
+                  'auth_user_id': null,
+                },
+              )
+              .toList();
 
       final membersResponse =
           await client.from(_membersTable).insert(memberRows).select();
 
-      final members = (membersResponse as List)
-          .map((m) => MemberModel.fromJson(m as Map<String, dynamic>))
-          .toList();
+      final members =
+          (membersResponse as List)
+              .map((m) => MemberModel.fromJson(m as Map<String, dynamic>))
+              .toList();
+
+      print("4 - Üyeler eklendi");
 
       return room.copyWith(members: members);
     } on RepositoryException {
@@ -75,7 +85,7 @@ base class RoomRepository extends BaseRepository implements IRoomRepository {
   @override
   Future<RoomModel> getRoomByCode(String code) async {
     try {
-      final response = await client
+final response = await client
           .from(_roomsTable)
           .select('*, room_members(*)')
           .eq('room_code', code)
@@ -96,11 +106,12 @@ base class RoomRepository extends BaseRepository implements IRoomRepository {
   @override
   Future<RoomModel> getRoomById(String id) async {
     try {
-      final response = await client
-          .from(_roomsTable)
-          .select('*, room_members(*)')
-          .eq('id', id)
-          .maybeSingle();
+      final response =
+          await client
+              .from(_roomsTable)
+              .select('*, room_members(*)')
+              .eq('id', id)
+              .maybeSingle();
 
       if (response == null) {
         throw const NotFoundException('Oda bulunamadı.');
@@ -120,11 +131,16 @@ base class RoomRepository extends BaseRepository implements IRoomRepository {
     required String name,
   }) async {
     try {
-      final response = await client
-          .from(_membersTable)
-          .insert({'room_id': roomId, 'name': name})
-          .select()
-          .single();
+      final response =
+          await client
+              .from(_membersTable)
+              .insert({
+                'room_id': roomId,
+                'name': name,
+                'auth_user_id': client.auth.currentUser?.id,
+              })
+              .select()
+              .single();
 
       return MemberModel.fromJson(response);
     } catch (e) {
@@ -135,8 +151,10 @@ base class RoomRepository extends BaseRepository implements IRoomRepository {
   @override
   Future<bool> roomExists(String code) async {
     try {
-      final response =
-          await client.from(_roomsTable).select('id').eq('room_code', code);
+final response = await client
+          .from(_roomsTable)
+          .select('id')
+          .eq('room_code', code);
       return (response as List).isNotEmpty;
     } catch (e) {
       throw BackendException('Oda kontrol edilirken bir hata oluştu: $e');

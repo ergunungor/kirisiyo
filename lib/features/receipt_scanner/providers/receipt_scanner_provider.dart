@@ -30,7 +30,7 @@ class ReceiptScannerProvider extends ChangeNotifier {
   ReceiptScannerProvider({
     IOcrService? ocrService,
     IImagePickerService? imagePickerService,
-  }) : _ocrService = ocrService ?? const OcrService(),
+  }) : _ocrService = ocrService ?? OcrService(),
        _imagePickerService = imagePickerService ?? ImagePickerService();
 
   final IOcrService _ocrService;
