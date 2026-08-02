@@ -1,3 +1,4 @@
+import '../../features/splash/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'auth_state.dart';
@@ -10,7 +11,7 @@ class AppRouter {
       initialLocation: '/',
       refreshListenable: authState,
       routes: [
-        GoRoute(path: '/', builder: (context, state) => const _Placeholder(name: 'Splash')),
+        GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
         GoRoute(path: '/home', builder: (context, state) => const _Placeholder(name: 'Home')),
         GoRoute(path: '/create-room', builder: (context, state) => const _Placeholder(name: 'Create Room')),
         GoRoute(path: '/join-room', builder: (context, state) => const _Placeholder(name: 'Join Room')),
