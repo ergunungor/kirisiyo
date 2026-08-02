@@ -3,9 +3,23 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 import 'core/theme/app_theme.dart';
 import 'core/routing/app_router.dart';
 import 'core/routing/auth_state.dart';
+import 'core/services/supabase_service.dart';
 
-void main() {
+// Bu değerler koda ASLA sabit yazılmaz.
+// Terminalden --dart-define ile dışarıdan verilir.
+const String supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+const String supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+
+void main() async {
   usePathUrlStrategy();
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await SupabaseService.initialize(
+    url: supabaseUrl,
+    publishableKey: supabaseAnonKey,
+  );
+  await SupabaseService.ensureAnonymousSession();
+
   runApp(const KirisiyoApp());
 }
 
