@@ -8,11 +8,7 @@ enum ScannerStatus { idle, picking, uploading, scanning, success, error }
 
 /// Fiş tarama sonucu.
 class ScanResult {
-  const ScanResult({
-    this.merchantName,
-    this.totalAmount,
-    this.imageUrl,
-  });
+  const ScanResult({this.merchantName, this.totalAmount, this.imageUrl});
 
   final String? merchantName;
   final double? totalAmount;
@@ -34,8 +30,8 @@ class ReceiptScannerProvider extends ChangeNotifier {
   ReceiptScannerProvider({
     IOcrService? ocrService,
     IImagePickerService? imagePickerService,
-  })  : _ocrService = ocrService ?? const OcrService(),
-        _imagePickerService = imagePickerService ?? ImagePickerService();
+  }) : _ocrService = ocrService ?? OcrService(),
+       _imagePickerService = imagePickerService ?? ImagePickerService();
 
   final IOcrService _ocrService;
   final IImagePickerService _imagePickerService;
@@ -48,7 +44,8 @@ class ReceiptScannerProvider extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  bool get isLoading => _status != ScannerStatus.idle &&
+  bool get isLoading =>
+      _status != ScannerStatus.idle &&
       _status != ScannerStatus.success &&
       _status != ScannerStatus.error;
 
@@ -67,46 +64,57 @@ class ReceiptScannerProvider extends ChangeNotifier {
   ScanResult? get scanResult => _scanResult;
 
   String? get statusMessage => switch (_status) {
-        ScannerStatus.idle => null,
-        ScannerStatus.picking => 'Görüntü seçiliyor...',
-        ScannerStatus.uploading => 'Görüntü yükleniyor...',
-        ScannerStatus.scanning => 'Fiş analiz ediliyor...',
-        ScannerStatus.success => 'Analiz tamamlandı!',
-        ScannerStatus.error => _errorMessage,
-      };
+    ScannerStatus.idle => null,
+    ScannerStatus.picking => 'Görüntü seçiliyor...',
+    ScannerStatus.uploading => 'Görüntü yükleniyor...',
+    ScannerStatus.scanning => 'Fiş analiz ediliyor...',
+    ScannerStatus.success => 'Analiz tamamlandı!',
+    ScannerStatus.error => _errorMessage,
+  };
+
+  // ── Aksiyon Metodları ────────────────────────────────────────────────────
 
   // ── Aksiyon Metodları ────────────────────────────────────────────────────
 
   /// Kameradan fotoğraf çeker ve OCR işlemi başlatır.
-  ///
-  /// TODO [Developer 4]: Tam akışı implement edin:
-  ///   captureFromCamera → uploadToStorage → processImage → parse
   Future<void> scanFromCamera({required String roomId}) async {
     _status = ScannerStatus.picking;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      // TODO [Developer 4]: Adım 1 — Kameradan görüntü al
-      //   _selectedImageBytes = await _imagePickerService.captureFromCamera();
-      //   if (_selectedImageBytes == null) { _resetToIdle(); return; }
+      // 1. Kameradan görüntü al
+      _selectedImageBytes = await _imagePickerService.captureFromCamera();
 
-      // TODO [Developer 4]: Adım 2 — Storage'a yükle
-      //   _status = ScannerStatus.uploading; notifyListeners();
-      //   final path = 'receipts/$roomId/${DateTime.now().millisecondsSinceEpoch}.jpg';
-      //   _uploadedImageUrl = await _imagePickerService.uploadToStorage(
-      //     imageBytes: _selectedImageBytes!,
-      //     path: path,
-      //   );
+      // Kullanıcı iptal ettiyse veya hata olduysa başa dön
+      if (_selectedImageBytes == null) {
+        _resetToIdle();
+        return;
+      }
 
-      // TODO [Developer 4]: Adım 3 — OCR işlemi
-      //   _status = ScannerStatus.scanning; notifyListeners();
-      //   final ocrResult = await _ocrService.processImage(_selectedImageBytes!);
-      //   _scanResult = ScanResult(
-      //     merchantName: ocrResult.merchantName,
-      //     totalAmount: ocrResult.totalAmount,
-      //     imageUrl: _uploadedImageUrl,
-      //   );
+      // 2. Supabase Storage adımını MVP için ATLIYORUZ!
+      // _uploadedImageUrl = await _imagePickerService.uploadToStorage(...)
+
+      // 3. OCR işlemini doğrudan byte'lar üzerinden başlat
+      _status = ScannerStatus.scanning;
+      notifyListeners();
+
+      final ocrResult = await _ocrService.processImage(_selectedImageBytes!);
+
+      // Eğer OCR hiçbir şey bulamadıysa hata gösterelim
+      if (!ocrResult.hasValidData) {
+        _setError(
+          'Fişten anlamlı bir veri çıkarılamadı. Lütfen tekrar deneyin.',
+        );
+        return;
+      }
+
+      // 4. Sonucu state'e kaydet (UI'a aktarılacak)
+      _scanResult = ScanResult(
+        merchantName: ocrResult.merchantName,
+        totalAmount: ocrResult.totalAmount,
+        imageUrl: null, // Yükleme yapmadığımız için boş bırakıyoruz
+      );
 
       _status = ScannerStatus.success;
       notifyListeners();
@@ -116,17 +124,40 @@ class ReceiptScannerProvider extends ChangeNotifier {
   }
 
   /// Galeriden fotoğraf seçer ve OCR işlemi başlatır.
-  ///
-  /// TODO [Developer 4]: scanFromCamera ile aynı akışı uygulayın,
-  ///   sadece ImageSource.gallery kullanın.
   Future<void> scanFromGallery({required String roomId}) async {
     _status = ScannerStatus.picking;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      // TODO [Developer 4]: scanFromCamera akışının aynısını uygulayın,
-      //   captureFromCamera yerine pickFromGallery kullanın.
+      // 1. Galeriden görüntü al
+      _selectedImageBytes = await _imagePickerService.pickFromGallery();
+
+      if (_selectedImageBytes == null) {
+        _resetToIdle();
+        return;
+      }
+
+      // 2. Storage ATLANDI
+
+      // 3. OCR İşlemi
+      _status = ScannerStatus.scanning;
+      notifyListeners();
+
+      final ocrResult = await _ocrService.processImage(_selectedImageBytes!);
+
+      if (!ocrResult.hasValidData) {
+        _setError(
+          'Fişten anlamlı bir veri çıkarılamadı. Lütfen daha net bir fotoğraf seçin.',
+        );
+        return;
+      }
+
+      _scanResult = ScanResult(
+        merchantName: ocrResult.merchantName,
+        totalAmount: ocrResult.totalAmount,
+        imageUrl: null,
+      );
 
       _status = ScannerStatus.success;
       notifyListeners();

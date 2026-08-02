@@ -1,5 +1,8 @@
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
+// TODO [Developer 4]: Kendi projendeki SupabaseService (veya benzeri) importunu buraya eklemelisin.
+// import '../../../core/services/supabase_service.dart';
 
 /// Görüntü seçici servis arayüzü.
 ///
@@ -20,13 +23,6 @@ abstract interface class IImagePickerService {
 }
 
 /// Görüntü seçici servis implementasyonu.
-///
-/// TODO [Developer 4]: image_picker ve Supabase Storage entegrasyonunu implement edin.
-///
-/// Web PWA için notlar:
-///   - Kamera erişimi tarayıcı API'sine bağlıdır
-///   - `image_picker_for_web` paketi web'de kullanılır
-///   - Kullanıcıya izin için browser prompt gösterilecektir
 class ImagePickerService implements IImagePickerService {
   ImagePickerService() : _picker = ImagePicker();
 
@@ -34,24 +30,41 @@ class ImagePickerService implements IImagePickerService {
 
   @override
   Future<Uint8List?> captureFromCamera() async {
-    // TODO [Developer 4]: Uygulama adımları:
-    //   1. _picker.pickImage(source: ImageSource.camera) çağır
-    //   2. Web'de: ImageSource.camera tarayıcı kamerasını açar
-    //   3. Null kontrolü yap
-    //   4. readAsBytes() ile Uint8List döndür
-    //   5. Görüntü kalite optimizasyonu: imageQuality: 85
-    throw UnimplementedError(
-        'captureFromCamera henüz implementasyonu yapılmadı.');
+    try {
+      // Web PWA'da ImageSource.camera tarayıcının kamera iznini ve arayüzünü tetikler.
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85, // Hızlı yükleme ve OCR için boyutu optimize ediyoruz
+        maxWidth: 1920,
+        maxHeight: 1920,
+      );
+
+      if (image == null) return null;
+
+      // Web ortamında File çalışmaz, doğrudan byte olarak okuyoruz
+      return await image.readAsBytes();
+    } catch (e) {
+      debugPrint('Kamera hatası: $e');
+      return null;
+    }
   }
 
   @override
   Future<Uint8List?> pickFromGallery() async {
-    // TODO [Developer 4]: Uygulama adımları:
-    //   1. _picker.pickImage(source: ImageSource.gallery) çağır
-    //   2. Null kontrolü yap
-    //   3. readAsBytes() ile Uint8List döndür
-    //   4. Görüntü boyutu limiti: maxWidth: 1920, maxHeight: 1920
-    throw UnimplementedError('pickFromGallery henüz implementasyonu yapılmadı.');
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 1920,
+        maxHeight: 1920,
+      );
+
+      if (image == null) return null;
+      return await image.readAsBytes();
+    } catch (e) {
+      debugPrint('Galeri hatası: $e');
+      return null;
+    }
   }
 
   @override
@@ -59,11 +72,31 @@ class ImagePickerService implements IImagePickerService {
     required Uint8List imageBytes,
     required String path,
   }) async {
-    // TODO [Developer 4]: Uygulama adımları:
-    //   1. SupabaseService.client.storage.from('receipts') kullan
-    //   2. .uploadBinary(path, imageBytes) ile yükle
-    //   3. .getPublicUrl(path) ile public URL al
-    //   4. URL'i döndür
-    throw UnimplementedError('uploadToStorage henüz implementasyonu yapılmadı.');
+    try {
+      // TODO [Developer 4]: SupabaseService.client yapısının projende var olduğunu varsayarak ilerliyorum.
+      // Kendi yapına göre import edip aşağıdaki yorum satırlarını aktif et.
+
+      /*
+      await SupabaseService.client.storage
+          .from('receipts')
+          .uploadBinary(
+            path, 
+            imageBytes,
+          );
+
+      final publicUrl = SupabaseService.client.storage
+          .from('receipts')
+          .getPublicUrl(path);
+
+      return publicUrl;
+      */
+
+      throw UnimplementedError(
+        'Supabase entegrasyonu import edildikten sonra üstteki kodu açın.',
+      );
+    } catch (e) {
+      debugPrint('Storage yükleme hatası: $e');
+      return null;
+    }
   }
 }

@@ -127,7 +127,7 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
       return;
     }
 
-    // TODO [Developer 2]: Oda bulunduysa üye seçim ekranına git.
+
     if (provider.currentRoom != null) {
       context.push(AppRoutes.selectMemberPath(code));
     }

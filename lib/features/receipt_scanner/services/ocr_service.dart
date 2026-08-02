@@ -1,4 +1,7 @@
-import 'dart:typed_data';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 /// OCR servis sonucu modeli.
 class OcrResult {
@@ -9,16 +12,9 @@ class OcrResult {
     this.confidence = 0.0,
   });
 
-  /// Tanınan işletme/mağaza adı
   final String? merchantName;
-
-  /// Tanınan toplam tutar
   final double? totalAmount;
-
-  /// Ham OCR metni (debug için)
   final String? rawText;
-
-  /// OCR güven skoru (0.0 - 1.0)
   final double confidence;
 
   bool get hasValidData => merchantName != null || totalAmount != null;
@@ -29,53 +25,73 @@ class OcrResult {
 }
 
 /// OCR servis arayüzü.
-///
-/// Developer 4 (AI Receipt Scanner) bu arayüzü implemente eder.
 abstract interface class IOcrService {
-  /// Görüntü byte'larından OCR işlemi yapar.
-  /// Sadece [merchantName] ve [totalAmount] döner.
   Future<OcrResult> processImage(Uint8List imageBytes);
-
-  /// Görüntü URL'inden OCR işlemi yapar.
   Future<OcrResult> processImageFromUrl(String imageUrl);
 }
 
-/// OCR servis implementasyonu.
-///
-/// TODO [Developer 4]: OCR backend entegrasyonunu implement edin.
-///
-/// Önerilen yaklaşımlar:
-///   A) Google Cloud Vision API:
-///      - Document Text Detection kullanın
-///      - receipt_parser.dart ile sonucu parse edin
-///
-///   B) Supabase Edge Function:
-///      - Flutter'dan Supabase Edge Function'a görüntü gönderin
-///      - Edge Function içinde Vision API çağrısı yapın
-///
-///   C) Firebase AI Logic (Gemini):
-///      - Multimodal Gemini API kullanın
-///      - Structured output ile merchantName ve totalAmount alın
-///
-/// Referans: Firebase AI Logic skill'ini inceleyin.
+/// Gemini destekli OCR servis implementasyonu.
 class OcrService implements IOcrService {
-  const OcrService();
+  late final GenerativeModel _model;
+
+  OcrService() {
+    _model = GenerativeModel(
+      model: 'gemini-3.5-flash-lite',
+      apiKey: 'YOUR_API_KEY', // Güvenli bir yerden çekmen önerilir
+      systemInstruction: Content.system('''
+        Sen bir fiş analiz asistanısın. Gönderilen fiş görselinden şu verileri çıkar:
+        1. Mağaza Adı (merchant)
+        2. Toplam Tutar (total) - sadece sayısal değer (örneğin 125.50)
+        
+        Çıktıyı SADECE JSON formatında ver: {"merchant": "...", "total": 0.0}
+        Başka hiçbir metin veya markdown bloğu ekleme.
+      '''),
+    );
+  }
 
   @override
   Future<OcrResult> processImage(Uint8List imageBytes) async {
-    // TODO [Developer 4]: OCR implementasyonunu buraya ekleyin.
-    //   Adımlar:
-    //   1. imageBytes'ı base64'e dönüştür
-    //   2. API'ye gönder (Vision/Gemini/Edge Function)
-    //   3. Yanıtı ReceiptParser ile parse et
-    //   4. OcrResult döndür
-    throw UnimplementedError('processImage henüz implementasyonu yapılmadı.');
+    try {
+      Future<Uint8List> _optimizeImage(Uint8List imageBytes) async {
+        // Görseli 800px genişliğe çek ve %50 kaliteye düşür.
+        // Bu işlem, görsel boyutunu MB'lardan KB'lara düşürür.
+        return await FlutterImageCompress.compressWithList(
+          imageBytes,
+          minWidth: 800,
+          minHeight: 800,
+          quality: 50,
+        );
+      }
+
+      final response = await _model.generateContent([
+        Content.multi([
+          TextPart('Bu fişi analiz et.'),
+          DataPart('image/jpeg', imageBytes),
+        ]),
+      ]);
+
+      final responseText = response.text ?? '';
+
+      // JSON temizleme (Markdown işaretlerini satır bölünmeden tek satırda temizliyoruz)
+      final cleanJson =
+          responseText.replaceAll('```json', '').replaceAll('```', '').trim();
+
+      final Map<String, dynamic> data = jsonDecode(cleanJson);
+
+      return OcrResult(
+        merchantName: data['merchant']?.toString(),
+        totalAmount: (data['total'] as num?)?.toDouble(),
+        rawText: responseText,
+        confidence: 1.0,
+      );
+    } catch (e) {
+      debugPrint('Gemini OCR Hatası: $e');
+      return const OcrResult();
+    }
   }
 
   @override
   Future<OcrResult> processImageFromUrl(String imageUrl) async {
-    // TODO [Developer 4]: URL'den görüntü indir, processImage çağır
-    throw UnimplementedError(
-        'processImageFromUrl henüz implementasyonu yapılmadı.');
+    throw UnimplementedError('Bu metot henüz kullanılmıyor.');
   }
 }

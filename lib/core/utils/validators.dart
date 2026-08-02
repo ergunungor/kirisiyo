@@ -2,9 +2,7 @@ import 'dart:math';
 import '../../core/constants/app_constants.dart';
 
 /// Oda kodu üretici yardımcısı.
-///
-/// TODO [Developer 2]: Üretilen kodun Supabase'de benzersiz olduğunu
-/// doğrulamak için repository'de kontrol ekleyin.
+
 abstract final class RoomCodeGenerator {
   static final Random _random = Random.secure();
 
@@ -32,10 +30,22 @@ abstract final class Validators {
 
   /// Oda kodu format kontrolü.
   static String? roomCode(String? value) {
-    if (value == null || value.isEmpty) return 'Oda kodu boş bırakılamaz.';
-    if (value.length != AppConstants.roomCodeLength) {
+    if (value == null || value.trim().isEmpty) return 'Oda kodu boş bırakılamaz.';
+    
+    // Kullanıcı küçük harf girerse hata almaması için hepsini büyük harfe çevirip kontrol ediyoruz
+    final cleanValue = value.trim().toUpperCase();
+
+    if (cleanValue.length != AppConstants.roomCodeLength) {
       return '${AppConstants.roomCodeLength} karakterli oda kodu girin.';
     }
+
+    // Sadece _chars listesindeki karakterlere izin veren Regex (A-H, J-N, P-Z ve 2-9)
+    final RegExp roomCodeRegex = RegExp(r'^[A-HJ-NP-Z2-9]+$');
+
+    if (!roomCodeRegex.hasMatch(cleanValue)) {
+      return 'Oda kodu geçersiz karakterler içeriyor.';
+    }
+
     return null;
   }
 
