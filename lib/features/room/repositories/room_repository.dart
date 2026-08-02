@@ -42,18 +42,11 @@ base class RoomRepository extends BaseRepository implements IRoomRepository {
       // Benzersiz kod üretme metodumuzu çağırıyoruz
       final code = await _generateUniqueCode();
 
-      print("1 - Oda oluşturuluyor");
-
-      final roomResponse =
-          await client
-              .from(_roomsTable)
-              .insert({'room_code': code, 'room_name': name})
-              .select()
-              .single();
-
-      print("ROOM INSERT OK");
-
-      print("2 - Oda oluşturuldu: $roomResponse");
+final roomResponse = await client
+          .from(_roomsTable)
+          .insert({'room_code': code, 'room_name': name})
+          .select()
+          .single();
 
       final room = RoomModel.fromJson(roomResponse);
 
@@ -92,12 +85,11 @@ base class RoomRepository extends BaseRepository implements IRoomRepository {
   @override
   Future<RoomModel> getRoomByCode(String code) async {
     try {
-      final response =
-          await client
-              .from(_roomsTable)
-              .select('*, room_members(*)')
-              .eq('room_code', code)
-              .maybeSingle();
+final response = await client
+          .from(_roomsTable)
+          .select('*, room_members(*)')
+          .eq('room_code', code)
+          .maybeSingle();
 
       if (response == null) {
         throw const NotFoundException('Bu kod ile bir oda bulunamadı.');
@@ -159,7 +151,7 @@ base class RoomRepository extends BaseRepository implements IRoomRepository {
   @override
   Future<bool> roomExists(String code) async {
     try {
-      final response = await client
+final response = await client
           .from(_roomsTable)
           .select('id')
           .eq('room_code', code);
