@@ -42,5 +42,22 @@
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
   <script src="flutter_bootstrap.js" async></script>
+  <script>
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Tarayıcının varsayılan mini-infobar'ını engelle,
+      // kendi kontrolümüzü Flutter tarafında kullanacağız.
+      e.preventDefault();
+      deferredPrompt = e;
+      window.canInstallPwa = true;
+    });
+
+    window.triggerPwaInstall = () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt = null;
+      }
+    };
+  </script>
 </body>
 </html>

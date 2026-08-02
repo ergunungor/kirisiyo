@@ -4,6 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/install_pwa_button.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -44,6 +45,8 @@ class HomeScreen extends StatelessWidget {
                 text: 'Odaya Gir',
                 onPressed: () => context.go('/join-room'),
               ),
+              const SizedBox(height: AppSpacing.lg),
+              const InstallPwaButton(),
             ],
           ),
         ),
