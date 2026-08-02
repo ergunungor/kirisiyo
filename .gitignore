@@ -44,7 +44,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Güvenlik — gizli anahtarlar asla repoya girmemeli
+# Guvenlik - gizli anahtarlar asla repoya girmemeli
 .env
 *.env
 firebase_options.dart
