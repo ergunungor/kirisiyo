@@ -10,7 +10,6 @@ import '../features/expense/screens/expenses_screen.dart';
 import '../features/expense/screens/add_expense_screen.dart';
 import '../features/expense/screens/expense_details_screen.dart';
 import '../features/balance/screens/balances_screen.dart';
-import '../features/receipt_scanner/screens/receipt_scanner_screen.dart';
 
 /// Kırışıyo uygulama yönlendirici.
 ///
@@ -40,8 +39,7 @@ abstract final class AppRoutes {
   static const String addExpense = '/room/:roomCode/expenses/add';
 
   /// Parametreler: [roomCode], [expenseId]
-  static const String expenseDetails =
-      '/room/:roomCode/expenses/:expenseId';
+  static const String expenseDetails = '/room/:roomCode/expenses/:expenseId';
 
   // ── Bakiye Rotaları ──────────────────────────────────────────────────────
 
@@ -50,25 +48,17 @@ abstract final class AppRoutes {
 
   // ── Fiş Tarama Rotaları ──────────────────────────────────────────────────
 
-  /// Parametre: [roomCode]
-  static const String receiptScanner =
-      '/room/:roomCode/expenses/scan';
-
   // ── Yardımcı Yol Üreticiler ──────────────────────────────────────────────
 
   static String roomDetailPath(String roomCode) => '/room/$roomCode';
   static String selectMemberPath(String roomCode) =>
       '/room/$roomCode/select-member';
-  static String expensesPath(String roomCode) =>
-      '/room/$roomCode/expenses';
+  static String expensesPath(String roomCode) => '/room/$roomCode/expenses';
   static String addExpensePath(String roomCode) =>
       '/room/$roomCode/expenses/add';
   static String expenseDetailsPath(String roomCode, String expenseId) =>
       '/room/$roomCode/expenses/$expenseId';
-  static String balancesPath(String roomCode) =>
-      '/room/$roomCode/balances';
-  static String receiptScannerPath(String roomCode) =>
-      '/room/$roomCode/expenses/scan';
+  static String balancesPath(String roomCode) => '/room/$roomCode/balances';
 }
 
 /// Uygulama router instance'ı.
@@ -134,14 +124,7 @@ final GoRouter appRouter = GoRouter(
                 return AddExpenseScreen(roomCode: roomCode);
               },
             ),
-            GoRoute(
-              path: 'scan',
-              name: 'receiptScanner',
-              builder: (context, state) {
-                final roomCode = state.pathParameters['roomCode']!;
-                return ReceiptScannerScreen(roomCode: roomCode);
-              },
-            ),
+
             GoRoute(
               path: ':expenseId',
               name: 'expenseDetails',
@@ -170,32 +153,33 @@ final GoRouter appRouter = GoRouter(
     ),
   ],
 
-  errorBuilder: (context, state) => Scaffold(
-    backgroundColor: const Color(0xFF0F0E1A),
-    body: Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text(
-            '404',
-            style: TextStyle(
-              fontSize: 72,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF6C63FF),
-            ),
+  errorBuilder:
+      (context, state) => Scaffold(
+        backgroundColor: const Color(0xFF0F0E1A),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                '404',
+                style: TextStyle(
+                  fontSize: 72,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF6C63FF),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Sayfa bulunamadı',
+                style: TextStyle(color: Colors.white70, fontSize: 18),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => context.go(AppRoutes.home),
+                child: const Text('Ana Sayfaya Dön'),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'Sayfa bulunamadı',
-            style: TextStyle(color: Colors.white70, fontSize: 18),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () => context.go(AppRoutes.home),
-            child: const Text('Ana Sayfaya Dön'),
-          ),
-        ],
+        ),
       ),
-    ),
-  ),
 );

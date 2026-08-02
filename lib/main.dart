@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'app/app.dart';
 import 'core/services/supabase_service.dart';
 import 'core/services/local_storage_service.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 /// Kırışıyo — Uygulama giriş noktası.
 ///
@@ -15,12 +16,14 @@ import 'core/services/local_storage_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  await initializeDateFormatting('tr_TR', null);
+
   // ── Servis Başlatma ───────────────────────────────────────────────────────
   await LocalStorageService.initialize();
 
   // TODO [Developer 5]: Supabase URL ve Anon Key'i ayarladıktan sonra
   //   aşağıdaki satırı uncomment edin.
- await SupabaseService.initialize();
+  await SupabaseService.initialize();
 
   runApp(const KirisiyoApp());
 }

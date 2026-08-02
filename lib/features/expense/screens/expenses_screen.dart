@@ -41,20 +41,12 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
-      appBar: AppBar(
-        title: const Text('Harcamalar'),
-        actions: [
-          IconButton(
-            onPressed: () =>
-                context.push(AppRoutes.receiptScannerPath(widget.roomCode)),
-            icon: const Icon(Icons.document_scanner_rounded),
-            tooltip: 'Fiş Tara',
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Harcamalar')),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: AppSpacing.maxContentWidth),
+          constraints: const BoxConstraints(
+            maxWidth: AppSpacing.maxContentWidth,
+          ),
           child: Consumer<ExpenseProvider>(
             builder: (context, provider, _) {
               if (provider.isLoading) {
@@ -82,18 +74,19 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               return ListView.separated(
                 padding: AppSpacing.paddingPage,
                 itemCount: provider.expenses.length,
-                separatorBuilder: (_, __) =>
-                    const SizedBox(height: AppSpacing.sm),
+                separatorBuilder:
+                    (_, __) => const SizedBox(height: AppSpacing.sm),
                 itemBuilder: (context, index) {
                   final expense = provider.expenses[index];
                   return _ExpenseListTile(
                     expense: expense,
-                    onTap: () => context.push(
-                      AppRoutes.expenseDetailsPath(
-                        widget.roomCode,
-                        expense.id,
-                      ),
-                    ),
+                    onTap:
+                        () => context.push(
+                          AppRoutes.expenseDetailsPath(
+                            widget.roomCode,
+                            expense.id,
+                          ),
+                        ),
                   );
                 },
               );
@@ -102,8 +95,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () =>
-            context.push(AppRoutes.addExpensePath(widget.roomCode)),
+        onPressed:
+            () => context.push(AppRoutes.addExpensePath(widget.roomCode)),
         icon: const Icon(Icons.add_rounded),
         label: const Text('Harcama Ekle'),
       ),
