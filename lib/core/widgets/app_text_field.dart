@@ -149,7 +149,7 @@ class AppRoomCodeTextField extends StatelessWidget {
       keyboardType: TextInputType.text,
       style: AppTextStyles.roomCode,
       decoration: const InputDecoration(
-        hintText: '------',
+        hintText: '--------',
         counterText: '',
         hintStyle: TextStyle(
           fontSize: 40,
