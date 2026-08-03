@@ -12,6 +12,7 @@ import '../../../shared/widgets/shared_widgets.dart';
 import '../../../core/utils/formatters.dart';
 import '../models/expense_model.dart';
 import '../providers/expense_provider.dart';
+import '../../room/providers/room_provider.dart';
 
 /// Harcamalar listesi ekranı.
 ///
@@ -31,9 +32,12 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   @override
   void initState() {
     super.initState();
-    // TODO [Developer 3]: Room ID'sini provider'dan alarak harcamaları yükleyin.
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-    context.read<ExpenseProvider>().loadExpenses(widget.roomCode);
+    final roomId = context.read<RoomProvider>().currentRoom?.id;
+if (roomId != null) {
+  context.read<ExpenseProvider>().loadExpenses(roomId);
+}
     });
   }
 
@@ -103,7 +107,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   if (context.mounted) {
     // Not: getExpenses kısmı sizin provider'daki fonksiyonun adına göre 
     // fetchExpenses veya loadExpenses olabilir, onu kendi kodunuza göre düzeltirsin.
-    context.read<ExpenseProvider>().loadExpenses(widget.roomCode);
+    final roomId = context.read<RoomProvider>().currentRoom?.id;
+    print('EXPENSES SCREEN roomId: $roomId');
+if (roomId != null) {
+  context.read<ExpenseProvider>().loadExpenses(roomId);
+}
   }
 },
         icon: const Icon(Icons.add_rounded),

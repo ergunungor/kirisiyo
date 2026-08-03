@@ -11,6 +11,7 @@ import '../../../core/widgets/state_widgets.dart';
 import '../../../shared/widgets/shared_widgets.dart';
 import '../providers/room_provider.dart';
 import 'package:flutter/services.dart';
+import '../../expense/screens/expenses_screen.dart';
 
 /// Oda detay ekranı (ana hub).
 ///
@@ -110,12 +111,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
   }
 
   Widget _buildExpensesTab(BuildContext context) {
-
-    return const EmptyStateWidget(
-      title: 'Henüz Harcama Yok',
-      description: 'İlk harcamayı eklemek için + butonuna basın.',
-      icon: Icons.receipt_long_rounded,
-    );
+    return ExpensesScreen(roomCode: widget.roomCode);
   }
 
   Widget _buildBalancesTab(BuildContext context) {
