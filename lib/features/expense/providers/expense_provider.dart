@@ -61,7 +61,7 @@ class ExpenseProvider extends ChangeNotifier {
 
     try {
       // TODO [Developer 3]: Repository çağrısını implement edin.
-      //   _expenses = await _expenseRepository.getExpensesByRoom(roomId);
+      _expenses = await _expenseRepository.getExpensesByRoom(roomId);
       _setSuccess();
     } catch (e) {
       _setError(e.toString());
@@ -76,7 +76,7 @@ class ExpenseProvider extends ChangeNotifier {
 
     try {
       // TODO [Developer 3]: Repository çağrısını implement edin.
-      //   _selectedExpense = await _expenseRepository.getExpenseById(expenseId);
+      _selectedExpense = await _expenseRepository.getExpenseById(expenseId);
       _setSuccess();
     } catch (e) {
       _setError(e.toString());
@@ -90,15 +90,20 @@ class ExpenseProvider extends ChangeNotifier {
     _setLoading();
 
     try {
-      // TODO [Developer 3]: Uygulama adımları:
-      //   1. _expenseRepository.createExpense(expense) çağır
-      //   2. Split hesaplamalarını yap (SplitCalculator kullan)
-      //   3. _expenseRepository.saveExpenseSplits(splits) çağır
-      //   4. _expenses listesine ekle
-      _setSuccess();
-    } catch (e) {
-      _setError(e.toString());
-    }
+  // 1. Veritabanına (Supabase) harcamayı kaydet
+  await _expenseRepository.createExpense(expense);
+
+  // NOT: 2 ve 3. adımlardaki Split (kişilere bölüştürme) mantığını 
+  // ileride buraya ekleyeceksin. Şimdilik listeye ekleyip ekranı yeniliyoruz.
+
+  // 4. Ekranda görünmesi için listeye ekle ve UI'a haber ver
+  _expenses.add(expense);
+  notifyListeners(); // <-- Ekranın "yenilendim!" demesini sağlayan sihirli kod bu
+  
+  _setSuccess();
+} catch (e) {
+  _setError(e.toString());
+}
   }
 
   /// Harcamayı siler.
@@ -108,13 +113,17 @@ class ExpenseProvider extends ChangeNotifier {
     _setLoading();
 
     try {
-      // TODO [Developer 3]: Repository çağrısını implement edin.
-      //   await _expenseRepository.deleteExpense(expenseId);
-      //   _expenses = _expenses.where((e) => e.id != expenseId).toList();
-      _setSuccess();
-    } catch (e) {
-      _setError(e.toString());
-    }
+  // Veritabanından sil
+  await _expenseRepository.deleteExpense(expenseId);
+  
+  // Ekrandaki listeden de çıkar ve UI'a haber ver
+  _expenses = _expenses.where((e) => e.id != expenseId).toList();
+  notifyListeners(); // <-- Bunu mutlaka ekle ki sildiğin an ekrandan da kaysın
+  
+  _setSuccess();
+} catch (e) {
+  _setError(e.toString());
+}
   }
 
   // ── Split Yönetimi ────────────────────────────────────────────────────────

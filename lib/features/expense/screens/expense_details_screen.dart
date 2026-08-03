@@ -40,7 +40,7 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // TODO [Developer 3]: Harcamayı yükleyin.
-      // context.read<ExpenseProvider>().loadExpenseById(widget.expenseId);
+    context.read<ExpenseProvider>().loadExpenseById(widget.expenseId);
     });
   }
 

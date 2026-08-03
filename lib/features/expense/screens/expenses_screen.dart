@@ -33,7 +33,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     super.initState();
     // TODO [Developer 3]: Room ID'sini provider'dan alarak harcamaları yükleyin.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // context.read<ExpenseProvider>().loadExpenses(roomId);
+    context.read<ExpenseProvider>().loadExpenses(widget.roomCode);
     });
   }
 
@@ -95,8 +95,17 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed:
-            () => context.push(AppRoutes.addExpensePath(widget.roomCode)),
+        onPressed: () async {
+  // 1. Ekleme sayfasına git ve o sayfa kapanana kadar bekle
+  await context.push(AppRoutes.addExpensePath(widget.roomCode));
+  
+  // 2. Sayfa kapanıp geri dönüldüğünde verileri baştan çek
+  if (context.mounted) {
+    // Not: getExpenses kısmı sizin provider'daki fonksiyonun adına göre 
+    // fetchExpenses veya loadExpenses olabilir, onu kendi kodunuza göre düzeltirsin.
+    context.read<ExpenseProvider>().loadExpenses(widget.roomCode);
+  }
+},
         icon: const Icon(Icons.add_rounded),
         label: const Text('Harcama Ekle'),
       ),

@@ -434,9 +434,17 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     );
 
     // Veritabanına (Supabase) yolla
-    await expenseProvider.createExpense(expense);
-    if (!provider.hasError && context.mounted) {
-      context.pop();
+try {
+      // 1. Supabase'e yolla
+      await expenseProvider.createExpense(expense);
+      
+      // 2. İşlem başarılıysa sayfayı kapat
+      if (context.mounted) {
+        context.pop();
+      }
+    } catch (e) {
+      // 3. Patlarsa ekranda kırmızı çizgi verme, hatayı direkt konsola yazdır!
+      print('🔥 SUPABASE HATASI PATLADI KANKA: $e');
     }
   }
 }

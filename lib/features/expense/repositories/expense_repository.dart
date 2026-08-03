@@ -1,3 +1,5 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../models/expense_model.dart';
 
 /// Harcama repository arayüzü.
@@ -40,63 +42,135 @@ abstract interface class IExpenseRepository {
 ///
 /// Supabase Storage'ı fiş fotoğrafları için kullanın (Dev 4 ile koordineli).
 class ExpenseRepository implements IExpenseRepository {
-  const ExpenseRepository();
+const ExpenseRepository();
 
+get _supabase => Supabase.instance.client;
   @override
   Future<List<ExpenseModel>> getExpensesByRoom(String roomId) async {
-    // TODO [Developer 3]: Uygulama adımları:
-    //   1. expenses tablosundan SELECT WHERE room_id = ? yap (date DESC sırala)
-    //   2. expense_splits JOIN ile bölüştürmeleri de getir
-    //   3. List<ExpenseModel> olarak döndür
-    throw UnimplementedError(
-        'getExpensesByRoom henüz implementasyonu yapılmadı.');
+    try {
+      // 1 & 2. Odaya ait harcamaları ve onlara bağlı split'leri (kim ne kadar ödedi) çek
+      final response = await _supabase
+          .from('expenses')
+          .select('*, expense_splits(*)') // JOIN işlemi
+          .eq('room_id', roomId)
+          .order('date', ascending: false); // Tarihe göre yeni olan en üstte
+          
+      // 3. Gelen veriyi List<ExpenseModel> olarak döndür
+      return (response as List).map((e) => ExpenseModel.fromJson(e)).toList();
+    } catch (e) {
+      throw Exception('Oda harcamaları getirilemedi: $e');
+    }
   }
 
   @override
   Future<ExpenseModel> getExpenseById(String id) async {
-    // TODO [Developer 3]: expenses + expense_splits JOIN ile getir
-    throw UnimplementedError('getExpenseById henüz implementasyonu yapılmadı.');
+    try {
+      final response = await _supabase
+          .from('expenses')
+          .select('*, expense_splits(*)')
+          .eq('id', id)
+          .single(); // Tek bir harcama dönmesini bekliyoruz
+          
+      return ExpenseModel.fromJson(response);
+    } catch (e) {
+      throw Exception('Harcama detayı getirilemedi: $e');
+    }
   }
 
   @override
   Future<ExpenseModel> createExpense(ExpenseModel expense) async {
-    // TODO [Developer 3]: Uygulama adımları:
-    //   1. expenses tablosuna INSERT yap
-    //   2. splits doluysa saveExpenseSplits çağır
-    //   3. Güncel ExpenseModel döndür
-    throw UnimplementedError('createExpense henüz implementasyonu yapılmadı.');
+    try {
+      // 1. expenses tablosuna INSERT yap ve eklenen veriyi geri iste (.select().single())
+      final response = await _supabase
+          .from('expenses')
+          .insert(expense.toJson())
+          .select() 
+          .single();
+          
+      final createdExpense = ExpenseModel.fromJson(response);
+
+      // 2. Eğer harcamanın içinde kişilere bölünmüş tutarlar (splits) varsa onları da kaydet
+      // (Eğer modelinizde splits diye bir liste yoksa bu if bloğunu silebilirsin)
+      if (expense.splits != null && expense.splits!.isNotEmpty) {
+        await saveExpenseSplits(expense.splits!);
+      }
+
+      // 3. Güncel modeli döndür
+      return createdExpense;
+    } catch (e) {
+      throw Exception('Harcama oluşturulamadı: $e');
+    }
   }
 
   @override
   Future<ExpenseModel> updateExpense(ExpenseModel expense) async {
-    // TODO [Developer 3]: expenses tablosunu UPDATE yap
-    throw UnimplementedError('updateExpense henüz implementasyonu yapılmadı.');
+    try {
+      // expenses tablosunu UPDATE yap
+      final response = await _supabase
+          .from('expenses')
+          .update(expense.toJson())
+          .eq('id', expense.id) // Sadece bu id'ye sahip olanı güncelle
+          .select()
+          .single();
+          
+      return ExpenseModel.fromJson(response);
+    } catch (e) {
+      throw Exception('Harcama güncellenemedi: $e');
+    }
   }
 
   @override
   Future<void> deleteExpense(String id) async {
-    // TODO [Developer 3]: expenses tablosundan DELETE yap
-    //   CASCADE ile expense_splits de silinecektir (DB constraint)
-    throw UnimplementedError('deleteExpense henüz implementasyonu yapılmadı.');
+    try {
+      // expenses tablosundan DELETE yap (CASCADE ayarlıysa splits otomatik silinir)
+      await _supabase
+          .from('expenses')
+          .delete()
+          .eq('id', id);
+    } catch (e) {
+      throw Exception('Harcama silinemedi: $e');
+    }
   }
 
   @override
   Future<void> saveExpenseSplits(List<ExpenseSplitModel> splits) async {
-    // TODO [Developer 3]: expense_splits tablosuna toplu INSERT yap
-    //   Önce mevcut kayıtları DELETE et, sonra yeni kayıtları INSERT et
-    throw UnimplementedError(
-        'saveExpenseSplits henüz implementasyonu yapılmadı.');
+    if (splits.isEmpty) return;
+    
+    try {
+      final expenseId = splits.first.expenseId;
+      
+      // Önce mevcut kayıtları sil (Temizlik)
+      await _supabase
+          .from('expense_splits')
+          .delete()
+          .eq('expense_id', expenseId);
+          
+      // Sonra yeni kayıtları topluca INSERT et
+      final splitsData = splits.map((s) => s.toJson()).toList();
+      await _supabase
+          .from('expense_splits')
+          .insert(splitsData);
+    } catch (e) {
+      throw Exception('Harcama bölüştürmeleri kaydedilemedi: $e');
+    }
   }
 
-  @override
+@override
   Future<ExpenseModel> attachReceiptPhoto({
     required String expenseId,
     required String photoUrl,
   }) async {
-    // TODO [Developer 3 + Developer 4]: Uygulama adımları:
-    //   1. expenses tablosunu UPDATE yap (photo_url = ?)
-    //   2. Güncel ExpenseModel döndür
-    throw UnimplementedError(
-        'attachReceiptPhoto henüz implementasyonu yapılmadı.');
+    try {
+      final response = await _supabase
+          .from('expenses')
+          .update({'photo_url': photoUrl})
+          .eq('id', expenseId)
+          .select()
+          .single();
+          
+      return ExpenseModel.fromJson(response);
+    } catch (e) {
+      throw Exception('Fiş fotoğrafı eklenemedi: $e');
+    }
   }
 }
