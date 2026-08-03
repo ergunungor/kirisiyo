@@ -14,6 +14,7 @@ import '../providers/expense_provider.dart';
 import '../../room/providers/room_provider.dart';
 import '../../room/models/room_model.dart';
 import 'package:uuid/uuid.dart';
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 
 /// Harcama ekleme ekranı.
 ///
@@ -262,12 +263,25 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       ],
     );
   }
-
-  Widget _buildEmojiSelector() {
-    // TODO [Developer 3]: emoji_picker_flutter paketi ile emoji seçici ekleyin.
+Widget _buildEmojiSelector() {
     return AppCard(
       onTap: () {
-        // TODO [Developer 3]: Emoji picker bottom sheet aç.
+        showModalBottomSheet(
+          context: context,
+          builder: (context) {
+            return SizedBox(
+              height: 280,
+              child: EmojiPicker(
+                onEmojiSelected: (category, emoji) {
+                  setState(() {
+                    _selectedEmoji = emoji.emoji;
+                  });
+                  Navigator.of(context).pop();
+                },
+              ),
+            );
+          },
+        );
       },
       child: Row(
         children: [
@@ -312,7 +326,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             ),
           ],
           selected: {provider.splitType},
-          onSelectionChanged: (s) => provider.setSplitType(s.first),
+          onSelectionChanged: (s) {
+  provider.setSplitType(s.first);
+  setState(() => _splitType = s.first);
+},
         ),
         const SizedBox(height: AppSpacing.md),
         // --- Developer 3: Katılımcı Seçimi (Adım 6) ---
