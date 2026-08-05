@@ -38,11 +38,13 @@ class BalanceModel extends Equatable {
       memberId: json['member_id'] as String,
       memberName: json['member_name'] as String,
       netBalance: (json['net_balance'] as num).toDouble(),
-      owes: (json['owes'] as List<dynamic>?)
+      owes:
+          (json['owes'] as List<dynamic>?)
               ?.map((d) => DebtRecord.fromJson(d as Map<String, dynamic>))
               .toList() ??
           [],
-      isOwed: (json['is_owed'] as List<dynamic>?)
+      isOwed:
+          (json['is_owed'] as List<dynamic>?)
               ?.map((d) => DebtRecord.fromJson(d as Map<String, dynamic>))
               .toList() ??
           [],
@@ -138,8 +140,7 @@ class DebtRecord extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [fromMemberId, toMemberId, amount];
+  List<Object?> get props => [fromMemberId, toMemberId, amount];
 }
 
 /// Ödeme tavsiyesi modeli.
@@ -204,6 +205,5 @@ class SettlementModel extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [fromMemberId, toMemberId, amount, isCompleted];
+  List<Object?> get props => [fromMemberId, toMemberId, amount, isCompleted];
 }
