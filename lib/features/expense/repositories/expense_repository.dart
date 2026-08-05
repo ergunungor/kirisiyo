@@ -42,9 +42,9 @@ abstract interface class IExpenseRepository {
 ///
 /// Supabase Storage'ı fiş fotoğrafları için kullanın (Dev 4 ile koordineli).
 class ExpenseRepository implements IExpenseRepository {
-const ExpenseRepository();
+  const ExpenseRepository();
 
-get _supabase => Supabase.instance.client;
+  get _supabase => Supabase.instance.client;
   @override
   Future<List<ExpenseModel>> getExpensesByRoom(String roomId) async {
     try {
@@ -53,8 +53,11 @@ get _supabase => Supabase.instance.client;
           .from('expenses')
           .select('*, expense_splits(*)') // JOIN işlemi
           .eq('room_id', roomId)
-          .order('date', ascending: false); // Tarihe göre yeni olan en üstte
-          
+          .order(
+            'expense_date',
+            ascending: false,
+          ); // Tarihe göre yeni olan en üstte
+
       // 3. Gelen veriyi List<ExpenseModel> olarak döndür
       return (response as List).map((e) => ExpenseModel.fromJson(e)).toList();
     } catch (e) {
@@ -65,12 +68,13 @@ get _supabase => Supabase.instance.client;
   @override
   Future<ExpenseModel> getExpenseById(String id) async {
     try {
-      final response = await _supabase
-          .from('expenses')
-          .select('*, expense_splits(*)')
-          .eq('id', id)
-          .single(); // Tek bir harcama dönmesini bekliyoruz
-          
+      final response =
+          await _supabase
+              .from('expenses')
+              .select('*, expense_splits(*)')
+              .eq('id', id)
+              .single(); // Tek bir harcama dönmesini bekliyoruz
+
       return ExpenseModel.fromJson(response);
     } catch (e) {
       throw Exception('Harcama detayı getirilemedi: $e');
@@ -81,12 +85,13 @@ get _supabase => Supabase.instance.client;
   Future<ExpenseModel> createExpense(ExpenseModel expense) async {
     try {
       // 1. expenses tablosuna INSERT yap ve eklenen veriyi geri iste (.select().single())
-      final response = await _supabase
-          .from('expenses')
-          .insert(expense.toJson())
-          .select() 
-          .single();
-          
+      final response =
+          await _supabase
+              .from('expenses')
+              .insert(expense.toJson())
+              .select()
+              .single();
+
       final createdExpense = ExpenseModel.fromJson(response);
 
       // 2. Eğer harcamanın içinde kişilere bölünmüş tutarlar (splits) varsa onları da kaydet
@@ -106,13 +111,14 @@ get _supabase => Supabase.instance.client;
   Future<ExpenseModel> updateExpense(ExpenseModel expense) async {
     try {
       // expenses tablosunu UPDATE yap
-      final response = await _supabase
-          .from('expenses')
-          .update(expense.toJson())
-          .eq('id', expense.id) // Sadece bu id'ye sahip olanı güncelle
-          .select()
-          .single();
-          
+      final response =
+          await _supabase
+              .from('expenses')
+              .update(expense.toJson())
+              .eq('id', expense.id) // Sadece bu id'ye sahip olanı güncelle
+              .select()
+              .single();
+
       return ExpenseModel.fromJson(response);
     } catch (e) {
       throw Exception('Harcama güncellenemedi: $e');
@@ -123,10 +129,7 @@ get _supabase => Supabase.instance.client;
   Future<void> deleteExpense(String id) async {
     try {
       // expenses tablosundan DELETE yap (CASCADE ayarlıysa splits otomatik silinir)
-      await _supabase
-          .from('expenses')
-          .delete()
-          .eq('id', id);
+      await _supabase.from('expenses').delete().eq('id', id);
     } catch (e) {
       throw Exception('Harcama silinemedi: $e');
     }
@@ -135,39 +138,38 @@ get _supabase => Supabase.instance.client;
   @override
   Future<void> saveExpenseSplits(List<ExpenseSplitModel> splits) async {
     if (splits.isEmpty) return;
-    
+
     try {
       final expenseId = splits.first.expenseId;
-      
+
       // Önce mevcut kayıtları sil (Temizlik)
       await _supabase
           .from('expense_splits')
           .delete()
           .eq('expense_id', expenseId);
-          
+
       // Sonra yeni kayıtları topluca INSERT et
       final splitsData = splits.map((s) => s.toJson()).toList();
-      await _supabase
-          .from('expense_splits')
-          .insert(splitsData);
+      await _supabase.from('expense_splits').insert(splitsData);
     } catch (e) {
       throw Exception('Harcama bölüştürmeleri kaydedilemedi: $e');
     }
   }
 
-@override
+  @override
   Future<ExpenseModel> attachReceiptPhoto({
     required String expenseId,
     required String photoUrl,
   }) async {
     try {
-      final response = await _supabase
-          .from('expenses')
-          .update({'photo_url': photoUrl})
-          .eq('id', expenseId)
-          .select()
-          .single();
-          
+      final response =
+          await _supabase
+              .from('expenses')
+              .update({'image_url': photoUrl})
+              .eq('id', expenseId)
+              .select()
+              .single();
+
       return ExpenseModel.fromJson(response);
     } catch (e) {
       throw Exception('Fiş fotoğrafı eklenemedi: $e');

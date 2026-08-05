@@ -65,17 +65,19 @@ class ExpenseModel extends Equatable {
       title: json['title'] as String,
       amount: (json['amount'] as num).toDouble(),
       paidByMemberId: json['paid_by_member_id'] as String,
-      date: DateTime.parse(json['date'] as String),
+      date: DateTime.parse(json['expense_date'] as String),
       createdAt: DateTime.parse(json['created_at'] as String),
       emoji: json['emoji'] as String?,
-      photoUrl: json['photo_url'] as String?,
+      photoUrl: json['image_url'] as String?,
       splitType: SplitType.values.firstWhere(
         (e) => e.name == (json['split_type'] as String? ?? 'equal'),
         orElse: () => SplitType.equal,
       ),
-      splits: (json['expense_splits'] as List<dynamic>?)
+      splits:
+          (json['expense_splits'] as List<dynamic>?)
               ?.map(
-                  (s) => ExpenseSplitModel.fromJson(s as Map<String, dynamic>))
+                (s) => ExpenseSplitModel.fromJson(s as Map<String, dynamic>),
+              )
               .toList() ??
           [],
       isFromReceipt: json['is_from_receipt'] as bool? ?? false,
@@ -89,10 +91,10 @@ class ExpenseModel extends Equatable {
       'title': title,
       'amount': amount,
       'paid_by_member_id': paidByMemberId,
-      'date': date.toIso8601String(),
+      'expense_date': date.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
       'emoji': emoji,
-      'photo_url': photoUrl,
+      'image_url': photoUrl,
       'split_type': splitType.name,
       'is_from_receipt': isFromReceipt,
     };
@@ -132,19 +134,19 @@ class ExpenseModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        roomId,
-        title,
-        amount,
-        paidByMemberId,
-        date,
-        createdAt,
-        emoji,
-        photoUrl,
-        splitType,
-        splits,
-        isFromReceipt,
-      ];
+    id,
+    roomId,
+    title,
+    amount,
+    paidByMemberId,
+    date,
+    createdAt,
+    emoji,
+    photoUrl,
+    splitType,
+    splits,
+    isFromReceipt,
+  ];
 
   @override
   String toString() =>
