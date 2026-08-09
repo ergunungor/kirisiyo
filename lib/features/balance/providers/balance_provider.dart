@@ -14,9 +14,8 @@ enum BalanceStatus { idle, loading, success, error }
 ///   - Ödeme tavsiyelerini hesaplama
 ///   - Kişisel bakiye durumunu tutma
 class BalanceProvider extends ChangeNotifier {
-  BalanceProvider({
-    IBalanceRepository? balanceRepository,
-  }) : _balanceRepository = balanceRepository ?? const BalanceRepository();
+  BalanceProvider({IBalanceRepository? balanceRepository})
+    : _balanceRepository = balanceRepository ?? const BalanceRepository();
 
   final IBalanceRepository _balanceRepository;
 
@@ -44,13 +43,11 @@ class BalanceProvider extends ChangeNotifier {
 
   /// Oda bakiyelerini yükler.
   ///
-  /// TODO [Developer 5]: [_balanceRepository.calculateBalances] çağrısı yapın.
   Future<void> loadBalances(String roomId) async {
     _setLoading();
 
     try {
-      // TODO [Developer 5]: Repository çağrısını implement edin.
-      //   _balances = await _balanceRepository.calculateBalances(roomId);
+      _balances = await _balanceRepository.calculateBalances(roomId);
       _setSuccess();
     } catch (e) {
       _setError(e.toString());
@@ -59,13 +56,11 @@ class BalanceProvider extends ChangeNotifier {
 
   /// Ödeme tavsiyelerini yükler.
   ///
-  /// TODO [Developer 5]: [_balanceRepository.calculateSettlements] çağrısı yapın.
   Future<void> loadSettlements(String roomId) async {
     _setLoading();
 
     try {
-      // TODO [Developer 5]: Repository çağrısını implement edin.
-      //   _settlements = await _balanceRepository.calculateSettlements(roomId);
+      _settlements = await _balanceRepository.calculateSettlements(roomId);
       _setSuccess();
     } catch (e) {
       _setError(e.toString());
@@ -74,7 +69,6 @@ class BalanceProvider extends ChangeNotifier {
 
   /// Kişisel bakiyeyi yükler.
   ///
-  /// TODO [Developer 5]: [_balanceRepository.getMemberBalance] çağrısı yapın.
   Future<void> loadMyBalance({
     required String roomId,
     required String memberId,
@@ -82,37 +76,46 @@ class BalanceProvider extends ChangeNotifier {
     _setLoading();
 
     try {
-      // TODO [Developer 5]: Repository çağrısını implement edin.
-      //   _myBalance = await _balanceRepository.getMemberBalance(
-      //     roomId: roomId,
-      //     memberId: memberId,
-      //   );
+      _myBalance = await _balanceRepository.getMemberBalance(
+        roomId: roomId,
+        memberId: memberId,
+      );
       _setSuccess();
     } catch (e) {
       _setError(e.toString());
     }
   }
 
-  /// Bakiye ve ödeme tavsiyelerini birlikte yükler.
-  Future<void> loadAll({
-    required String roomId,
-    String? memberId,
-  }) async {
+  Future<void> loadAll({required String roomId, String? memberId}) async {
     _setLoading();
 
     try {
-      // TODO [Developer 5]: Paralel yükleme yapın.
-      //   await Future.wait([
-      //     loadBalances(roomId),
-      //     loadSettlements(roomId),
-      //     if (memberId != null) loadMyBalance(roomId: roomId, memberId: memberId),
-      //   ]);
+      // Tek çağrıda hesaplayıp settlement'ları balances içinden türetiyoruz
+      // (calculateSettlements'ı ayrıca çağırmak veriyi 2 kez çekmek demek olurdu).
+      _balances = await _balanceRepository.calculateBalances(roomId);
+      _settlements =
+          _balances
+              .expand((b) => b.owes)
+              .map(
+                (d) => SettlementModel(
+                  fromMemberId: d.fromMemberId,
+                  fromMemberName: d.fromMemberName,
+                  toMemberId: d.toMemberId,
+                  toMemberName: d.toMemberName,
+                  amount: d.amount,
+                ),
+              )
+              .toList();
+
+      if (memberId != null) {
+        _myBalance = _balances.where((b) => b.memberId == memberId).firstOrNull;
+      }
+
       _setSuccess();
     } catch (e) {
       _setError(e.toString());
     }
   }
-
   // ── Private Yardımcı Metodlar ─────────────────────────────────────────────
 
   void _setLoading() {

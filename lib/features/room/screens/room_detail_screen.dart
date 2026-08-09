@@ -12,6 +12,9 @@ import '../../../shared/widgets/shared_widgets.dart';
 import '../providers/room_provider.dart';
 import 'package:flutter/services.dart';
 import '../../expense/screens/expenses_screen.dart';
+import '../../../core/widgets/app_button.dart';
+import '../../balance/screens/balances_screen.dart';
+import '../../../core/widgets/app_text_field.dart';
 
 /// Oda detay ekranı (ana hub).
 ///
@@ -34,6 +37,8 @@ class RoomDetailScreen extends StatefulWidget {
 
 class _RoomDetailScreenState extends State<RoomDetailScreen> {
   int _selectedTab = 0;
+  final _ibanController = TextEditingController();
+  bool _ibanInitialized = false;
 
   @override
   void initState() {
@@ -42,6 +47,12 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<RoomProvider>().loadRoomByCode(widget.roomCode);
     });
+  }
+
+  @override
+  void dispose() {
+    _ibanController.dispose();
+    super.dispose();
   }
 
   @override
@@ -58,11 +69,15 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
               IconButton(
                 onPressed: () async {
                   // Senin bulduğun AppConstants metodunu çağırıyoruz
-                  final shareLink = AppConstants.roomInviteLink(widget.roomCode);
+                  final shareLink = AppConstants.roomInviteLink(
+                    widget.roomCode,
+                  );
                   await Clipboard.setData(ClipboardData(text: shareLink));
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Davet bağlantısı kopyalandı!')),
+                      const SnackBar(
+                        content: Text('Davet bağlantısı kopyalandı!'),
+                      ),
                     );
                   }
                 },
@@ -76,26 +91,29 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
               constraints: const BoxConstraints(
                 maxWidth: AppSpacing.maxContentWidth,
               ),
-              child: provider.isLoading
-                  ? const LoadingWidget(message: 'Oda yükleniyor...')
-                  : provider.hasError
+              child:
+                  provider.isLoading
+                      ? const LoadingWidget(message: 'Oda yükleniyor...')
+                      : provider.hasError
                       ? ErrorStateWidget(
-                          message: provider.errorMessage ?? 'Oda yüklenemedi.',
-                          onRetry: () =>
-                              provider.loadRoomByCode(widget.roomCode),
-                        )
+                        message: provider.errorMessage ?? 'Oda yüklenemedi.',
+                        onRetry: () => provider.loadRoomByCode(widget.roomCode),
+                      )
                       : _buildBody(context, provider),
             ),
           ),
           bottomNavigationBar: _buildBottomNav(),
-          floatingActionButton: _selectedTab == 0
-              ? FloatingActionButton.extended(
-                  onPressed: () =>
-                      context.push(AppRoutes.addExpensePath(widget.roomCode)),
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text('Harcama Ekle'),
-                )
-              : null,
+          floatingActionButton:
+              _selectedTab == 0
+                  ? FloatingActionButton.extended(
+                    onPressed:
+                        () => context.push(
+                          AppRoutes.addExpensePath(widget.roomCode),
+                        ),
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('Harcama Ekle'),
+                  )
+                  : null,
         );
       },
     );
@@ -115,64 +133,178 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
   }
 
   Widget _buildBalancesTab(BuildContext context) {
-    // TODO [Developer 5]: BalancesScreen'i buraya entegre edin.
-    return const EmptyStateWidget(
-      title: 'Bakiye Hesaplanıyor',
-      description: 'Harcama eklendikten sonra bakiyeler görünecek.',
-      icon: Icons.account_balance_wallet_rounded,
-    );
+    return BalancesScreen(roomCode: widget.roomCode);
   }
 
   Widget _buildRoomInfoTab(BuildContext context, RoomProvider provider) {
     final room = provider.currentRoom;
     if (room == null) return const SizedBox.shrink();
 
-    return Padding(
-      padding: AppSpacing.paddingPage,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: AppSpacing.md),
-          Text('Oda Kodu', style: AppTextStyles.labelMedium.copyWith(
-            color: AppColors.textSecondary,
-          )),
-          const SizedBox(height: AppSpacing.sm),
-          Text(room.code, style: AppTextStyles.roomCode),
-          const SizedBox(height: AppSpacing.xl),
-          Text('Katılımcılar (${room.members.length})', style: AppTextStyles.headlineSmall),
-          const SizedBox(height: AppSpacing.md),
-          ...room.members.map(
-            (member) => Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: Row(
-                children: [
-                  MemberAvatar(name: member.name),
-                  const SizedBox(width: AppSpacing.md),
-                  Text(member.name, style: AppTextStyles.bodyLarge),
-                  if (provider.currentMember?.id == member.id) ...[
-                    const SizedBox(width: AppSpacing.sm),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.2),
-                        borderRadius:
-                            BorderRadius.circular(AppSpacing.radiusRound),
-                      ),
-                      child: Text('Ben', style: AppTextStyles.labelSmall.copyWith(
-                        color: AppColors.primary,
-                      )),
-                    ),
-                  ],
-                ],
+    if (!_ibanInitialized) {
+      _ibanController.text = provider.currentMember?.iban ?? '';
+      _ibanInitialized = true;
+    }
+
+    return SingleChildScrollView(
+      child: Padding(
+        padding: AppSpacing.paddingPage,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'Oda Kodu',
+              style: AppTextStyles.labelMedium.copyWith(
+                color: AppColors.textSecondary,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: AppSpacing.sm),
+            Text(room.code, style: AppTextStyles.roomCode),
+            const SizedBox(height: AppSpacing.xl),
+            Text(
+              'Katılımcılar (${room.members.length})',
+              style: AppTextStyles.headlineSmall,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            ...room.members.map(
+              (member) => Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: Row(
+                  children: [
+                    MemberAvatar(name: member.name),
+                    const SizedBox(width: AppSpacing.md),
+                    Text(member.name, style: AppTextStyles.bodyLarge),
+                    if (provider.currentMember?.id == member.id) ...[
+                      const SizedBox(width: AppSpacing.sm),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusRound,
+                          ),
+                        ),
+                        child: Text(
+                          'Ben',
+                          style: AppTextStyles.labelSmall.copyWith(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            if (provider.currentMember != null) ...[
+              const SizedBox(height: AppSpacing.xl),
+              Text('IBAN Bilgin', style: AppTextStyles.headlineSmall),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Sana borcu olanlar bu IBAN üzerinden ödeme yapabilsin diye ekle.',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              AppTextField(
+                label: 'IBAN',
+                hint: 'TR00 0000 0000 0000 0000 0000 00',
+                controller: _ibanController,
+                prefixIcon: Icons.account_balance_rounded,
+                textCapitalization: TextCapitalization.characters,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              AppButton(
+                label: 'IBAN\'ı Kaydet',
+                variant: AppButtonVariant.secondary,
+                icon: Icons.save_rounded,
+                isFullWidth: false,
+                onPressed: () => _saveIban(context, provider),
+              ),
+            ],
+            const SizedBox(height: AppSpacing.xl),
+            AppButton(
+              label: 'Odadan Çık',
+              variant: AppButtonVariant.danger,
+              icon: Icons.logout_rounded,
+              onPressed: () => _confirmLeaveRoom(context, provider),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+          ],
+        ),
       ),
     );
+  }
+
+  Future<void> _saveIban(BuildContext context, RoomProvider provider) async {
+    final raw = _ibanController.text.trim().toUpperCase().replaceAll(' ', '');
+    if (raw.isEmpty) return;
+
+    if (!RegExp(r'^TR\d{24}$').hasMatch(raw)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Geçerli bir IBAN girin (TR ile başlamalı, 26 karakter).',
+          ),
+        ),
+      );
+      return;
+    }
+
+    await provider.updateMyIban(raw);
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            provider.hasError
+                ? (provider.errorMessage ?? 'IBAN kaydedilemedi.')
+                : 'IBAN kaydedildi.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _confirmLeaveRoom(
+    BuildContext context,
+    RoomProvider provider,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (dialogContext) => AlertDialog(
+            backgroundColor: AppColors.surface,
+            title: const Text('Odadan Çık'),
+            content: const Text(
+              'Bu odadan çıkmak istediğine emin misin? Tekrar girmek için oda koduna ihtiyacın olacak.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Vazgeç'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text(
+                  'Odadan Çık',
+                  style: TextStyle(color: AppColors.debtRed),
+                ),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed == true) {
+      await provider.leaveRoom();
+      if (context.mounted) {
+        context.go(AppRoutes.home);
+      }
+    }
   }
 
   Widget _buildBottomNav() {

@@ -1,3 +1,5 @@
+import '../../room/models/room_model.dart';
+import '../../../core/services/base_repository.dart';
 import '../models/balance_model.dart';
 
 /// Bakiye repository arayüzü.
@@ -19,45 +21,153 @@ abstract interface class IBalanceRepository {
 
 /// Bakiye repository implementasyonu.
 ///
-/// TODO [Developer 5]: Bakiye hesaplama algoritmalarını implement edin.
-///
-/// Önerilen yaklaşım:
-///   1. Oda harcamalarını getir (expense_repository kullan)
-///   2. Harcama bölüştürmelerini al
-///   3. Her üye için net bakiye hesapla:
-///      net = (ödediği harcamalar toplamı) - (payına düşen harcamalar toplamı)
-///   4. Settlement için "Simplify Debts" algoritmasını uygula
-///      (minimum transfer problemi - greedy veya flow-based)
-///
-/// Referans algoritma: https://medium.com/@mithunmk93/algorithm-behind-splitwises-debt-simplification-feature-8ac485e97688
-class BalanceRepository implements IBalanceRepository {
+/// Net bakiyeleri Supabase'deki [v_member_paid] ve [v_member_share]
+/// view'larından okur (eşit/özel bölüşüm farkını view zaten hesaplıyor),
+/// ödeme tavsiyelerini ise "Simplify Debts" algoritmasıyla üretir.
+base class BalanceRepository extends BaseRepository
+    implements IBalanceRepository {
   const BalanceRepository();
+
+  static const _membersTable = 'room_members';
+  static const _paidView = 'v_member_paid';
+  static const _shareView = 'v_member_share';
+
+  /// Odanın üyelerini ve her üyenin net bakiyesini
+  /// (ödediği toplam - payına düşen toplam) hesaplar.
+  Future<(List<MemberModel>, Map<String, double>)> _loadNetBalances(
+    String roomId,
+  ) async {
+    try {
+      final membersResponse = await client
+          .from(_membersTable)
+          .select()
+          .eq('room_id', roomId);
+
+      final members =
+          (membersResponse as List)
+              .map((m) => MemberModel.fromJson(m as Map<String, dynamic>))
+              .toList();
+
+      final paidResponse = await client
+          .from(_paidView)
+          .select()
+          .eq('room_id', roomId);
+      final paidMap = <String, double>{
+        for (final row in (paidResponse as List))
+          row['member_id'] as String: (row['total_paid'] as num).toDouble(),
+      };
+
+      final shareResponse = await client
+          .from(_shareView)
+          .select()
+          .eq('room_id', roomId);
+      final shareMap = <String, double>{
+        for (final row in (shareResponse as List))
+          row['member_id'] as String: (row['total_share'] as num).toDouble(),
+      };
+
+      final netBalances = <String, double>{
+        for (final member in members)
+          member.id: (paidMap[member.id] ?? 0) - (shareMap[member.id] ?? 0),
+      };
+
+      return (members, netBalances);
+    } on RepositoryException {
+      rethrow;
+    } catch (e) {
+      throw BackendException('Bakiye verileri okunamadı: $e');
+    }
+  }
+
+  /// "Simplify Debts" (borç sadeleştirme) algoritması.
+  ///
+  /// Greedy yaklaşım: en büyük alacaklıyla en büyük borçluyu eşleştir,
+  /// bu minimum transfer sayısına yakın bir sonuç verir.
+  List<SettlementModel> _simplifyDebts(
+    List<MemberModel> members,
+    Map<String, double> netBalances,
+  ) {
+    const epsilon = 0.01;
+
+    final creditors = <MapEntry<MemberModel, double>>[];
+    final debtors = <MapEntry<MemberModel, double>>[];
+
+    for (final member in members) {
+      final net = netBalances[member.id] ?? 0;
+      if (net > epsilon) {
+        creditors.add(MapEntry(member, net));
+      } else if (net < -epsilon) {
+        debtors.add(MapEntry(member, -net));
+      }
+    }
+
+    creditors.sort((a, b) => b.value.compareTo(a.value));
+    debtors.sort((a, b) => b.value.compareTo(a.value));
+
+    final settlements = <SettlementModel>[];
+    var i = 0, j = 0;
+
+    while (i < debtors.length && j < creditors.length) {
+      final debtor = debtors[i];
+      final creditor = creditors[j];
+      final amount =
+          debtor.value < creditor.value ? debtor.value : creditor.value;
+
+      if (amount > epsilon) {
+        settlements.add(
+          SettlementModel(
+            fromMemberId: debtor.key.id,
+            fromMemberName: debtor.key.name,
+            toMemberId: creditor.key.id,
+            toMemberName: creditor.key.name,
+            amount: double.parse(amount.toStringAsFixed(2)),
+          ),
+        );
+      }
+
+      debtors[i] = MapEntry(debtor.key, debtor.value - amount);
+      creditors[j] = MapEntry(creditor.key, creditor.value - amount);
+
+      if (debtors[i].value <= epsilon) i++;
+      if (creditors[j].value <= epsilon) j++;
+    }
+
+    return settlements;
+  }
 
   @override
   Future<List<BalanceModel>> calculateBalances(String roomId) async {
-    // TODO [Developer 5]: Uygulama adımları:
-    //   1. Oda üyelerini getir
-    //   2. Tüm harcamaları ve bölüştürmeleri getir
-    //   3. Her üye için:
-    //      - paid = SUM(amount) WHERE paid_by_member_id = memberId
-    //      - owed = SUM(split.amount) WHERE split.member_id = memberId
-    //      - net = paid - owed
-    //   4. DebtRecord listesini oluştur
-    //   5. List<BalanceModel> döndür
-    throw UnimplementedError(
-        'calculateBalances henüz implementasyonu yapılmadı.');
+    final (members, netBalances) = await _loadNetBalances(roomId);
+    final settlements = _simplifyDebts(members, netBalances);
+
+    final debtRecords =
+        settlements
+            .map(
+              (s) => DebtRecord(
+                fromMemberId: s.fromMemberId,
+                fromMemberName: s.fromMemberName,
+                toMemberId: s.toMemberId,
+                toMemberName: s.toMemberName,
+                amount: s.amount,
+              ),
+            )
+            .toList();
+
+    return members.map((member) {
+      return BalanceModel(
+        memberId: member.id,
+        memberName: member.name,
+        netBalance: netBalances[member.id] ?? 0,
+        owes: debtRecords.where((d) => d.fromMemberId == member.id).toList(),
+        isOwed: debtRecords.where((d) => d.toMemberId == member.id).toList(),
+      );
+    }).toList();
   }
 
   @override
   Future<List<SettlementModel>> calculateSettlements(String roomId) async {
-    // TODO [Developer 5]: Uygulama adımları:
-    //   1. calculateBalances() çağır
-    //   2. Sadece net != 0 olan üyeleri al
-    //   3. Alacaklıları ve borçluları ayır
-    //   4. Minimum transfer algoritması uygula
-    //   5. List<SettlementModel> döndür
-    throw UnimplementedError(
-        'calculateSettlements henüz implementasyonu yapılmadı.');
+    final (members, netBalances) = await _loadNetBalances(roomId);
+    return _simplifyDebts(members, netBalances);
   }
 
   @override
@@ -65,8 +175,10 @@ class BalanceRepository implements IBalanceRepository {
     required String roomId,
     required String memberId,
   }) async {
-    // TODO [Developer 5]: calculateBalances() sonucundan filtrele
-    throw UnimplementedError(
-        'getMemberBalance henüz implementasyonu yapılmadı.');
+    final balances = await calculateBalances(roomId);
+    return balances.firstWhere(
+      (b) => b.memberId == memberId,
+      orElse: () => throw const NotFoundException('Üye bakiyesi bulunamadı.'),
+    );
   }
 }

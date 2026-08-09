@@ -21,6 +21,11 @@ abstract interface class IRoomRepository {
 
   Future<MemberModel> addMember({required String roomId, required String name});
 
+  Future<MemberModel> updateMemberIban({
+    required String memberId,
+    required String iban,
+  });
+
   Future<bool> roomExists(String code);
 }
 
@@ -42,11 +47,12 @@ base class RoomRepository extends BaseRepository implements IRoomRepository {
       // Benzersiz kod üretme metodumuzu çağırıyoruz
       final code = await _generateUniqueCode();
 
-final roomResponse = await client
-          .from(_roomsTable)
-          .insert({'room_code': code, 'room_name': name})
-          .select()
-          .single();
+      final roomResponse =
+          await client
+              .from(_roomsTable)
+              .insert({'room_code': code, 'room_name': name})
+              .select()
+              .single();
 
       final room = RoomModel.fromJson(roomResponse);
 
@@ -85,11 +91,12 @@ final roomResponse = await client
   @override
   Future<RoomModel> getRoomByCode(String code) async {
     try {
-final response = await client
-          .from(_roomsTable)
-          .select('*, room_members(*)')
-          .eq('room_code', code)
-          .maybeSingle();
+      final response =
+          await client
+              .from(_roomsTable)
+              .select('*, room_members(*)')
+              .eq('room_code', code)
+              .maybeSingle();
 
       if (response == null) {
         throw const NotFoundException('Bu kod ile bir oda bulunamadı.');
@@ -149,9 +156,29 @@ final response = await client
   }
 
   @override
+  Future<MemberModel> updateMemberIban({
+    required String memberId,
+    required String iban,
+  }) async {
+    try {
+      final response =
+          await client
+              .from(_membersTable)
+              .update({'iban': iban})
+              .eq('id', memberId)
+              .select()
+              .single();
+
+      return MemberModel.fromJson(response);
+    } catch (e) {
+      throw BackendException('IBAN güncellenirken bir hata oluştu: $e');
+    }
+  }
+
+  @override
   Future<bool> roomExists(String code) async {
     try {
-final response = await client
+      final response = await client
           .from(_roomsTable)
           .select('id')
           .eq('room_code', code);
