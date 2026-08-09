@@ -13,6 +13,7 @@ import '../../../core/utils/formatters.dart';
 import '../models/expense_model.dart';
 import '../providers/expense_provider.dart';
 import '../../room/providers/room_provider.dart';
+import '../../room/providers/room_provider.dart';
 
 /// Harcamalar listesi ekranı.
 ///
@@ -143,15 +144,27 @@ class _ExpenseListTile extends StatelessWidget {
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                CurrencyFormatter.format(expense.amount),
-                style: AppTextStyles.amountMedium,
-              ),
-              // TODO [Developer 3]: "Ben ödedim" / "X ödedi" etiketini göster
-            ],
+          Consumer<RoomProvider>(
+            builder: (context, roomProvider, _) {
+              final payer = roomProvider.currentRoom?.members
+                  .where((m) => m.id == expense.paidByMemberId)
+                  .firstOrNull;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    CurrencyFormatter.format(expense.amount),
+                    style: AppTextStyles.amountMedium,
+                  ),
+                  Text(
+                    payer?.name ?? 'Bilinmeyen',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),

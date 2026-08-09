@@ -7,6 +7,7 @@ import '../../../core/widgets/loading_widget.dart';
 import '../../../core/widgets/state_widgets.dart';
 import '../../../core/utils/formatters.dart';
 import '../providers/expense_provider.dart';
+import '../../room/providers/room_provider.dart';
 
 /// Harcama detay ekranı.
 ///
@@ -116,13 +117,40 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
                     style: AppTextStyles.headlineSmall,
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  // TODO [Developer 3]: expense.splits listesini gösterin.
-                  Text(
-                    'TODO [Developer 3]: Split detaylarını implement edin.',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.warning,
-                    ),
-                  ),
+                  if (expense.splits.isEmpty)
+                    Text(
+                      'Bölüştürme bilgisi bulunamadı.',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    )
+                  else
+                    ...expense.splits.map((split) {
+                      final member = context
+                          .watch<RoomProvider>()
+                          .currentRoom
+                          ?.members
+                          .where((m) => m.id == split.memberId)
+                          .firstOrNull;
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                member?.name ?? 'Bilinmeyen Kullanıcı',
+                                style: AppTextStyles.bodyMedium,
+                              ),
+                            ),
+                            Text(
+                              CurrencyFormatter.format(split.amount),
+                              style: AppTextStyles.bodyMedium,
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
 
                   // ── Fiş Fotoğrafı ─────────────────────────────────────
                   if (expense.photoUrl != null) ...[
