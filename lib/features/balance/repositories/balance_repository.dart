@@ -17,13 +17,22 @@ abstract interface class IBalanceRepository {
     required String roomId,
     required String memberId,
   });
+
+  /// Gerçekleşen bir ödemeyi kaydeder (borç kapatma).
+  Future<void> recordPayment({
+    required String roomId,
+    required String fromMemberId,
+    required String toMemberId,
+    required double amount,
+  });
 }
 
 /// Bakiye repository implementasyonu.
 ///
 /// Net bakiyeleri Supabase'deki [v_member_paid] ve [v_member_share]
-/// view'larından okur (eşit/özel bölüşüm farkını view zaten hesaplıyor),
-/// ödeme tavsiyelerini ise "Simplify Debts" algoritmasıyla üretir.
+/// view'larından okur, kayıtlı [settlements] ödemelerini bu net
+/// bakiyeye uygular, ödeme tavsiyelerini ise "Simplify Debts"
+/// algoritmasıyla üretir.
 base class BalanceRepository extends BaseRepository
     implements IBalanceRepository {
   const BalanceRepository();
@@ -31,9 +40,11 @@ base class BalanceRepository extends BaseRepository
   static const _membersTable = 'room_members';
   static const _paidView = 'v_member_paid';
   static const _shareView = 'v_member_share';
+  static const _settlementsTable = 'settlements';
 
   /// Odanın üyelerini ve her üyenin net bakiyesini
-  /// (ödediği toplam - payına düşen toplam) hesaplar.
+  /// (ödediği toplam - payına düşen toplam, kayıtlı ödemeler uygulanmış)
+  /// hesaplar.
   Future<(List<MemberModel>, Map<String, double>)> _loadNetBalances(
     String roomId,
   ) async {
@@ -70,6 +81,21 @@ base class BalanceRepository extends BaseRepository
         for (final member in members)
           member.id: (paidMap[member.id] ?? 0) - (shareMap[member.id] ?? 0),
       };
+
+      // Kayıtlı ödemeleri uygula: ödeyen kişinin bakiyesi 0'a yaklaşır,
+      // ödemeyi alan kişinin alacağı o kadar azalır.
+      final settlementsResponse = await client
+          .from(_settlementsTable)
+          .select()
+          .eq('room_id', roomId);
+
+      for (final row in (settlementsResponse as List)) {
+        final from = row['from_member_id'] as String;
+        final to = row['to_member_id'] as String;
+        final amount = (row['amount'] as num).toDouble();
+        netBalances[from] = (netBalances[from] ?? 0) + amount;
+        netBalances[to] = (netBalances[to] ?? 0) - amount;
+      }
 
       return (members, netBalances);
     } on RepositoryException {
@@ -180,5 +206,26 @@ base class BalanceRepository extends BaseRepository
       (b) => b.memberId == memberId,
       orElse: () => throw const NotFoundException('Üye bakiyesi bulunamadı.'),
     );
+  }
+
+  @override
+  Future<void> recordPayment({
+    required String roomId,
+    required String fromMemberId,
+    required String toMemberId,
+    required double amount,
+  }) async {
+    try {
+      await client.from(_settlementsTable).insert({
+        'room_id': roomId,
+        'from_member_id': fromMemberId,
+        'to_member_id': toMemberId,
+        'amount': amount,
+      });
+    } on RepositoryException {
+      rethrow;
+    } catch (e) {
+      throw BackendException('Ödeme kaydedilirken bir hata oluştu: $e');
+    }
   }
 }
