@@ -116,7 +116,31 @@ class BalanceProvider extends ChangeNotifier {
       _setError(e.toString());
     }
   }
-  // ── Private Yardımcı Metodlar ─────────────────────────────────────────────
+
+  /// Şu an borçlu olduğum tüm kişilere olan borcumu "ödendi" olarak
+  /// işaretler (her biri için bir ödeme kaydı oluşturur) ve bakiyeleri
+  /// yeniden yükler.
+  Future<void> settleAllMyDebts({
+    required String roomId,
+    required String memberId,
+  }) async {
+    _setLoading();
+
+    try {
+      final myDebts = _myBalance?.owes ?? const <DebtRecord>[];
+      for (final debt in myDebts) {
+        await _balanceRepository.recordPayment(
+          roomId: roomId,
+          fromMemberId: debt.fromMemberId,
+          toMemberId: debt.toMemberId,
+          amount: debt.amount,
+        );
+      }
+      await loadAll(roomId: roomId, memberId: memberId);
+    } catch (e) {
+      _setError(e.toString());
+    }
+  } // ── Private Yardımcı Metodlar ─────────────────────────────────────────────
 
   void _setLoading() {
     _status = BalanceStatus.loading;

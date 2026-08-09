@@ -12,6 +12,8 @@ import '../../../shared/widgets/shared_widgets.dart';
 import '../../room/providers/room_provider.dart';
 import '../models/balance_model.dart';
 import '../providers/balance_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/supabase_service.dart';
 
 /// Bakiyeler ekranı.
 ///
@@ -32,12 +34,68 @@ class BalancesScreen extends StatefulWidget {
 }
 
 class _BalancesScreenState extends State<BalancesScreen> {
+  RealtimeChannel? _channel;
+  String? _subscribedRoomId;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadBalances(context);
+      _subscribeToChanges(context);
     });
+  }
+
+  /// Oda ile ilgili harcama/ödeme değişikliklerini canlı dinler.
+  ///
+  /// expense_splits tablosunda room_id kolonu olmadığı için o tabloyu
+  /// filtresiz dinliyoruz (her değişiklikte bu odanın bakiyesini de
+  /// yeniden hesaplıyoruz — küçük ölçekli bir uygulama için sorun değil).
+  void _subscribeToChanges(BuildContext context) {
+    final roomId = context.read<RoomProvider>().currentRoom?.id;
+    if (roomId == null || roomId == _subscribedRoomId) return;
+
+    _channel?.unsubscribe();
+    _subscribedRoomId = roomId;
+
+    _channel =
+        SupabaseService.client
+            .channel('balances-room-$roomId')
+            .onPostgresChanges(
+              event: PostgresChangeEvent.all,
+              schema: 'public',
+              table: 'expenses',
+              filter: PostgresChangeFilter(
+                type: PostgresChangeFilterType.eq,
+                column: 'room_id',
+                value: roomId,
+              ),
+              callback: (_) => _loadBalances(context),
+            )
+            .onPostgresChanges(
+              event: PostgresChangeEvent.all,
+              schema: 'public',
+              table: 'expense_splits',
+              callback: (_) => _loadBalances(context),
+            )
+            .onPostgresChanges(
+              event: PostgresChangeEvent.all,
+              schema: 'public',
+              table: 'settlements',
+              filter: PostgresChangeFilter(
+                type: PostgresChangeFilterType.eq,
+                column: 'room_id',
+                value: roomId,
+              ),
+              callback: (_) => _loadBalances(context),
+            )
+            .subscribe();
+  }
+
+  @override
+  void dispose() {
+    _channel?.unsubscribe();
+    super.dispose();
   }
 
   void _loadBalances(BuildContext context) {
@@ -47,6 +105,48 @@ class _BalancesScreenState extends State<BalancesScreen> {
       context.read<BalanceProvider>().loadAll(
         roomId: roomId,
         memberId: roomProvider.currentMember?.id,
+      );
+    }
+  }
+
+  Future<void> _confirmMarkPaid(BuildContext context) async {
+    final roomProvider = context.read<RoomProvider>();
+    final balanceProvider = context.read<BalanceProvider>();
+    final roomId = roomProvider.currentRoom?.id;
+    final memberId = roomProvider.currentMember?.id;
+    if (roomId == null || memberId == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (dialogContext) => AlertDialog(
+            backgroundColor: AppColors.surface,
+            title: const Text('Ödendi Olarak İşaretle'),
+            content: const Text(
+              'Borcunu ödediğini onaylıyor musun? Bu işlem bakiyeni sıfırlar. '
+              'Diğer üyeler, Bakiyeler sekmesini bir sonraki açışlarında güncel '
+              'bakiyeyi görecek.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Vazgeç'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text(
+                  'Ödendi',
+                  style: TextStyle(color: AppColors.creditGreen),
+                ),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed == true) {
+      await balanceProvider.settleAllMyDebts(
+        roomId: roomId,
+        memberId: memberId,
       );
     }
   }
@@ -104,8 +204,12 @@ class _BalancesScreenState extends State<BalancesScreen> {
                   ],
 
                   // ── Kişisel Bakiye Kartı ──────────────────────────────
+                  // ── Kişisel Bakiye Kartı ──────────────────────────────
                   if (provider.myBalance != null) ...[
-                    _MyBalanceCard(balance: provider.myBalance!),
+                    _MyBalanceCard(
+                      balance: provider.myBalance!,
+                      onMarkPaid: () => _confirmMarkPaid(context),
+                    ),
                     const SizedBox(height: AppSpacing.xl),
                   ],
 
@@ -289,8 +393,9 @@ class _CopyableRow extends StatelessWidget {
 
 /// Kişisel bakiye kartı.
 class _MyBalanceCard extends StatelessWidget {
-  const _MyBalanceCard({required this.balance});
+  const _MyBalanceCard({required this.balance, this.onMarkPaid});
   final BalanceModel balance;
+  final VoidCallback? onMarkPaid;
 
   @override
   Widget build(BuildContext context) {
@@ -298,32 +403,84 @@ class _MyBalanceCard extends StatelessWidget {
 
     return AppGradientCard(
       gradient: isInDebt ? AppColors.debtGradient : AppColors.creditGradient,
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Benim Bakiyem',
-            style: AppTextStyles.labelMedium.copyWith(
-              color: Colors.white.withOpacity(0.8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Benim Bakiyem',
+                  style: AppTextStyles.labelMedium.copyWith(
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  CurrencyFormatter.format(balance.netBalance),
+                  style: AppTextStyles.amountLarge.copyWith(
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  isInDebt
+                      ? '${balance.owes.length} kişiye borçlusun'
+                      : balance.isInCredit
+                      ? '${balance.isOwed.length} kişi sana borçlu'
+                      : 'Bakiyen sıfır 🎉',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: Colors.white.withOpacity(0.9),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            CurrencyFormatter.format(balance.netBalance),
-            style: AppTextStyles.amountLarge.copyWith(color: Colors.white),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            isInDebt
-                ? '${balance.owes.length} kişiye borçlusun'
-                : balance.isInCredit
-                ? '${balance.isOwed.length} kişi sana borçlu'
-                : 'Bakiyen sıfır 🎉',
-            style: AppTextStyles.bodySmall.copyWith(
-              color: Colors.white.withOpacity(0.9),
-            ),
-          ),
+          if (isInDebt && onMarkPaid != null) ...[
+            const SizedBox(width: AppSpacing.sm),
+            _MarkPaidButton(onPressed: onMarkPaid!),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+/// "Ödendi" butonu — bakiye kartının sağında gösterilir.
+class _MarkPaidButton extends StatelessWidget {
+  const _MarkPaidButton({required this.onPressed});
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white.withOpacity(0.18),
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        onTap: onPressed,
+        child: const Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.check_circle_rounded, color: Colors.white, size: 22),
+              SizedBox(height: 2),
+              Text(
+                'Ödendi',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
