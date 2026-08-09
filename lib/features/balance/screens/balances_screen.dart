@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../app/app_colors.dart';
 import '../../../app/app_spacing.dart';
@@ -8,6 +9,7 @@ import '../../../core/widgets/loading_widget.dart';
 import '../../../core/widgets/state_widgets.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/shared_widgets.dart';
+import '../../room/providers/room_provider.dart';
 import '../models/balance_model.dart';
 import '../providers/balance_provider.dart';
 
@@ -16,11 +18,10 @@ import '../providers/balance_provider.dart';
 /// Developer 5 (Backend & Balance Engine) bu ekranı yönetir.
 ///
 /// Gösterilenler:
+///   - (Varsa) Premium ödeme talimatı kartları — kime ne kadar borçlusun
 ///   - Kişisel bakiye kartı
 ///   - Tüm üyelerin bakiyeleri
 ///   - Ödeme tavsiyeleri (settlements)
-///
-/// TODO [Developer 5]: Gerçek veriyi provider üzerinden yükleyin.
 class BalancesScreen extends StatefulWidget {
   const BalancesScreen({super.key, required this.roomCode});
 
@@ -35,33 +36,43 @@ class _BalancesScreenState extends State<BalancesScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // TODO [Developer 5]: Bakiyeleri ve ödeme tavsiyelerini yükleyin.
-      // context.read<BalanceProvider>().loadAll(roomId: roomId);
+      _loadBalances(context);
     });
+  }
+
+  void _loadBalances(BuildContext context) {
+    final roomProvider = context.read<RoomProvider>();
+    final roomId = roomProvider.currentRoom?.id;
+    if (roomId != null) {
+      context.read<BalanceProvider>().loadAll(
+        roomId: roomId,
+        memberId: roomProvider.currentMember?.id,
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
-      appBar: AppBar(
-        title: const Text('Bakiyeler'),
-      ),
+      appBar: AppBar(title: const Text('Bakiyeler')),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: AppSpacing.maxContentWidth),
-          child: Consumer<BalanceProvider>(
-            builder: (context, provider, _) {
+          constraints: const BoxConstraints(
+            maxWidth: AppSpacing.maxContentWidth,
+          ),
+          child: Consumer2<BalanceProvider, RoomProvider>(
+            builder: (context, provider, roomProvider, _) {
               if (provider.isLoading) {
-                return const LoadingWidget(message: 'Bakiyeler hesaplanıyor...');
+                return const LoadingWidget(
+                  message: 'Bakiyeler hesaplanıyor...',
+                );
               }
 
               if (provider.hasError) {
                 return ErrorStateWidget(
                   message: provider.errorMessage ?? 'Bakiyeler yüklenemedi.',
-                  onRetry: () {
-                    // TODO [Developer 5]: loadAll() çağırın
-                  },
+                  onRetry: () => _loadBalances(context),
                 );
               }
 
@@ -74,9 +85,24 @@ class _BalancesScreenState extends State<BalancesScreen> {
                 );
               }
 
+              final myDebts = provider.myBalance?.owes ?? const [];
+              final ibanByMemberId = <String, String?>{
+                for (final m in roomProvider.currentRoom?.members ?? const [])
+                  m.id: m.iban,
+              };
+
               return ListView(
                 padding: AppSpacing.paddingPage,
                 children: [
+                  // ── Ödeme Talimatı Kartları (premium) ────────────────
+                  for (final debt in myDebts) ...[
+                    _PaymentInstructionCard(
+                      debt: debt,
+                      creditorIban: ibanByMemberId[debt.toMemberId],
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
+
                   // ── Kişisel Bakiye Kartı ──────────────────────────────
                   if (provider.myBalance != null) ...[
                     _MyBalanceCard(balance: provider.myBalance!),
@@ -84,10 +110,7 @@ class _BalancesScreenState extends State<BalancesScreen> {
                   ],
 
                   // ── Tüm Bakiyeler ─────────────────────────────────────
-                  Text(
-                    'Tüm Bakiyeler',
-                    style: AppTextStyles.headlineSmall,
-                  ),
+                  Text('Tüm Bakiyeler', style: AppTextStyles.headlineSmall),
                   const SizedBox(height: AppSpacing.md),
                   ...provider.balances.map(
                     (b) => Padding(
@@ -116,6 +139,149 @@ class _BalancesScreenState extends State<BalancesScreen> {
             },
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Borçlu olunan kişiye ödeme yapmak için gösterilen premium kart.
+class _PaymentInstructionCard extends StatelessWidget {
+  const _PaymentInstructionCard({
+    required this.debt,
+    required this.creditorIban,
+  });
+
+  final DebtRecord debt;
+  final String? creditorIban;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasIban = creditorIban != null && creditorIban!.isNotEmpty;
+
+    return AppCard(
+      gradient: AppColors.premiumGradient,
+      borderColor: AppColors.premiumAccent.withOpacity(0.4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.workspace_premium_rounded,
+                size: 18,
+                color: AppColors.premiumAccent,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                'ÖDEME BİLGİSİ',
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: AppColors.premiumAccent,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          RichText(
+            text: TextSpan(
+              style: AppTextStyles.bodyLarge.copyWith(color: Colors.white),
+              children: [
+                TextSpan(text: '${debt.toMemberName} isimli kişiye '),
+                TextSpan(
+                  text: CurrencyFormatter.format(debt.amount),
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                const TextSpan(text: ' borçlusun'),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          if (hasIban) ...[
+            _CopyableRow(
+              icon: Icons.account_balance_rounded,
+              label: creditorIban!,
+              copyMessage: 'IBAN kopyalandı!',
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            _CopyableRow(
+              icon: Icons.person_rounded,
+              label: debt.toMemberName,
+              copyMessage: 'İsim kopyalandı!',
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Borcunu bu bilgiler ile ödeyebilirsin.',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: Colors.white.withOpacity(0.7),
+              ),
+            ),
+          ] else
+            Text(
+              '${debt.toMemberName} henüz IBAN bilgisini eklemedi.',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: Colors.white.withOpacity(0.7),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Kopyalanabilir bilgi satırı (IBAN / isim).
+class _CopyableRow extends StatelessWidget {
+  const _CopyableRow({
+    required this.icon,
+    required this.label,
+    required this.copyMessage,
+  });
+
+  final IconData icon;
+  final String label;
+  final String copyMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(color: Colors.white.withOpacity(0.12)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: AppColors.premiumAccent),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              label,
+              style: AppTextStyles.labelLarge.copyWith(
+                color: Colors.white,
+                letterSpacing: 0.5,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          IconButton(
+            icon: const Icon(
+              Icons.copy_rounded,
+              size: 18,
+              color: AppColors.premiumAccent,
+            ),
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: label));
+              if (context.mounted) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(copyMessage)));
+              }
+            },
+          ),
+        ],
       ),
     );
   }
@@ -151,8 +317,8 @@ class _MyBalanceCard extends StatelessWidget {
             isInDebt
                 ? '${balance.owes.length} kişiye borçlusun'
                 : balance.isInCredit
-                    ? '${balance.isOwed.length} kişi sana borçlu'
-                    : 'Bakiyen sıfır 🎉',
+                ? '${balance.isOwed.length} kişi sana borçlu'
+                : 'Bakiyen sıfır 🎉',
             style: AppTextStyles.bodySmall.copyWith(
               color: Colors.white.withOpacity(0.9),
             ),

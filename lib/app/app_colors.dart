@@ -93,6 +93,16 @@ abstract final class AppColors {
     end: Alignment.bottomRight,
   );
 
+  /// Premium ödeme kartı gradienti
+  static const LinearGradient premiumGradient = LinearGradient(
+    colors: [Color(0xFF201C3A), Color(0xFF2D2752), Color(0xFF1A1830)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  /// Premium kart vurgu rengi (altın/amber)
+  static const Color premiumAccent = Color(0xFFE8C97A);
+
   // ── Gölge Renkleri ───────────────────────────────────────────────────────
 
   static const Color shadowDark = Color(0x806C63FF);

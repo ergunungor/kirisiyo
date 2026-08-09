@@ -32,11 +32,13 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
   final _formKey = GlobalKey<FormState>();
   final _roomNameController = TextEditingController();
   final _memberNameController = TextEditingController();
+  final _memberNameFocusNode = FocusNode();
 
   @override
   void dispose() {
     _roomNameController.dispose();
     _memberNameController.dispose();
+    _memberNameFocusNode.dispose();
     super.dispose();
   }
 
@@ -79,6 +81,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
           label: 'Oda adını girin',
           hint: 'Örn: Yaz tatili, Hafta sonu gezisi',
           controller: _roomNameController,
+
           prefixIcon: Icons.meeting_room_rounded,
           maxLength: AppConstants.roomNameMaxLength,
           textCapitalization: TextCapitalization.sentences,
@@ -109,6 +112,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                 label: 'Katılımcı adı',
                 hint: 'İsim girin',
                 controller: _memberNameController,
+                focusNode: _memberNameFocusNode,
                 prefixIcon: Icons.person_add_rounded,
                 textCapitalization: TextCapitalization.words,
                 textInputAction: TextInputAction.done,
@@ -116,9 +120,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            _AddMemberButton(
-              onPressed: () => _addMember(context, provider),
-            ),
+            _AddMemberButton(onPressed: () => _addMember(context, provider)),
           ],
         ),
         const SizedBox(height: AppSpacing.md),
@@ -126,8 +128,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
         ...provider.pendingMemberNames.asMap().entries.map(
           (entry) => _MemberChip(
             name: entry.value,
-            onRemove: () =>
-                provider.removeMemberName(entry.key),
+            onRemove: () => provider.removeMemberName(entry.key),
           ),
         ),
         if (provider.pendingMemberNames.isEmpty)
@@ -145,7 +146,8 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
   Widget _buildCreateButton(BuildContext context, RoomProvider provider) {
     return AppButton(
       label: 'Oda Oluştur',
-      onPressed: provider.isLoading ? null : () => _createRoom(context, provider),
+      onPressed:
+          provider.isLoading ? null : () => _createRoom(context, provider),
       isLoading: provider.isLoading,
       icon: Icons.rocket_launch_rounded,
     );
@@ -167,15 +169,18 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
           const SizedBox(height: AppSpacing.lg),
           Text('Oda Oluşturuldu!', style: AppTextStyles.headlineLarge),
           const SizedBox(height: AppSpacing.xl),
-          Text('Oda Kodu', style: AppTextStyles.labelMedium.copyWith(
-            color: AppColors.textSecondary,
-          )),
+          Text(
+            'Oda Kodu',
+            style: AppTextStyles.labelMedium.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
           const SizedBox(height: AppSpacing.sm),
           Text(code, style: AppTextStyles.roomCode),
           const SizedBox(height: AppSpacing.xl),
           AppButton(
             label: 'Odaya Git',
-            onPressed: () => context.go(AppRoutes.roomDetailPath(code)),
+            onPressed: () => context.go(AppRoutes.selectMemberPath(code)),
             icon: Icons.arrow_forward_rounded,
           ),
           const SizedBox(height: AppSpacing.md),
@@ -202,10 +207,10 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
     if (name.isEmpty) return;
     provider.addMemberName(name);
     _memberNameController.clear();
+    _memberNameFocusNode.requestFocus();
   }
 
-  Future<void> _createRoom(
-      BuildContext context, RoomProvider provider) async {
+  Future<void> _createRoom(BuildContext context, RoomProvider provider) async {
     if (!_formKey.currentState!.validate()) return;
     if (provider.pendingMemberNames.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -214,7 +219,6 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
       return;
     }
 
-
     await provider.createRoom(
       name: _roomNameController.text.trim(),
       memberNames: provider.pendingMemberNames,
@@ -222,7 +226,9 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
 
     if (provider.hasError && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(provider.errorMessage ?? AppConstants.errorGeneric)),
+        SnackBar(
+          content: Text(provider.errorMessage ?? AppConstants.errorGeneric),
+        ),
       );
     }
   }

@@ -13,6 +13,7 @@ class AppTextField extends StatelessWidget {
     required this.label,
     this.hint,
     this.controller,
+    this.focusNode,
     this.validator,
     this.onChanged,
     this.onSubmitted,
@@ -31,6 +32,7 @@ class AppTextField extends StatelessWidget {
   final String label;
   final String? hint;
   final TextEditingController? controller;
+  final FocusNode? focusNode;
   final FormFieldValidator<String>? validator;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
@@ -49,6 +51,7 @@ class AppTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
+      focusNode: focusNode,
       validator: validator,
       onChanged: onChanged,
       onFieldSubmitted: onSubmitted,

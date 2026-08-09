@@ -18,9 +18,8 @@ enum RoomStatus { idle, loading, success, error }
 ///   - Aktif oda/üye state'ini tutmak
 ///   - Local storage ile session yönetimi
 class RoomProvider extends ChangeNotifier {
-  RoomProvider({
-    IRoomRepository? roomRepository,
-  }) : _roomRepository = roomRepository ?? const RoomRepository();
+  RoomProvider({IRoomRepository? roomRepository})
+    : _roomRepository = roomRepository ?? const RoomRepository();
 
   final IRoomRepository _roomRepository;
 
@@ -53,7 +52,7 @@ class RoomProvider extends ChangeNotifier {
 
   // ── Aksiyon Metodları ────────────────────────────────────────────────────
 
-/// Oda oluşturma flow'unda üye ismi ekler.
+  /// Oda oluşturma flow'unda üye ismi ekler.
   void addMemberName(String name) {
     final trimmedName = name.trim();
     if (trimmedName.isEmpty) return;
@@ -63,7 +62,7 @@ class RoomProvider extends ChangeNotifier {
     final isDuplicate = _pendingMemberNames.any(
       (existing) => existing.toLowerCase() == trimmedName.toLowerCase(),
     );
-    
+
     if (isDuplicate) {
       _setError('Bu isim zaten listeye eklenmiş.');
       return;
@@ -126,11 +125,38 @@ class RoomProvider extends ChangeNotifier {
   }
 
   /// Aktif üyeyi seçer.
-Future<void> selectMember(MemberModel member) async {
+  Future<void> selectMember(MemberModel member) async {
     _currentMember = member;
 
-    await LocalStorageService.setString(AppConstants.prefCurrentMemberId, member.id);
+    await LocalStorageService.setString(
+      AppConstants.prefCurrentMemberId,
+      member.id,
+    );
     notifyListeners();
+  }
+
+  /// Kendi IBAN bilgisini günceller.
+  Future<void> updateMyIban(String iban) async {
+    final member = _currentMember;
+    final room = _currentRoom;
+    if (member == null || room == null) return;
+
+    try {
+      final updated = await _roomRepository.updateMemberIban(
+        memberId: member.id,
+        iban: iban,
+      );
+
+      _currentMember = updated;
+      _currentRoom = room.copyWith(
+        members:
+            room.members.map((m) => m.id == updated.id ? updated : m).toList(),
+      );
+      _errorMessage = null;
+      notifyListeners();
+    } catch (e) {
+      _setError(e.toString());
+    }
   }
 
   /// Provider state'ini sıfırlar.
@@ -142,6 +168,13 @@ Future<void> selectMember(MemberModel member) async {
     _pendingMemberNames = [];
     _generatedRoomCode = null;
     notifyListeners();
+  }
+
+  /// Odadan çıkar: local session bilgisini temizler ve state'i sıfırlar.
+  Future<void> leaveRoom() async {
+    await LocalStorageService.remove(AppConstants.prefCurrentRoomCode);
+    await LocalStorageService.remove(AppConstants.prefCurrentMemberId);
+    reset();
   }
 
   // ── Private Yardımcı Metodlar ─────────────────────────────────────────────

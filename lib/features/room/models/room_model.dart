@@ -74,20 +74,22 @@ class RoomModel extends Equatable {
 
 /// Oda üyesi modeli.
 ///
-/// Supabase [room_members] tablosuyla eşleşir.
-/// Developer 2 (Room Management) bu modeli yönetir.
 class MemberModel extends Equatable {
   const MemberModel({
     required this.id,
     required this.roomId,
     required this.name,
     required this.joinedAt,
+    this.iban,
   });
 
   final String id;
   final String roomId;
   final String name;
   final DateTime joinedAt;
+
+  /// Üyenin IBAN'ı (isteğe bağlı — henüz girmemiş olabilir).
+  final String? iban;
 
   // ── Serialization ─────────────────────────────────────────────────────────
 
@@ -99,6 +101,7 @@ class MemberModel extends Equatable {
       joinedAt: DateTime.parse(
         json['created_at'] as String,
       ), // <--- SADECE BURASI DEĞİŞTİ
+      iban: json['iban'] as String?,
     );
   }
 
@@ -108,6 +111,7 @@ class MemberModel extends Equatable {
       'room_id': roomId,
       'name': name,
       'joined_at': joinedAt.toIso8601String(),
+      'iban': iban,
     };
   }
 
@@ -118,17 +122,19 @@ class MemberModel extends Equatable {
     String? roomId,
     String? name,
     DateTime? joinedAt,
+    String? iban,
   }) {
     return MemberModel(
       id: id ?? this.id,
       roomId: roomId ?? this.roomId,
       name: name ?? this.name,
       joinedAt: joinedAt ?? this.joinedAt,
+      iban: iban ?? this.iban,
     );
   }
 
   @override
-  List<Object?> get props => [id, roomId, name, joinedAt];
+  List<Object?> get props => [id, roomId, name, joinedAt, iban];
 
   @override
   String toString() => 'MemberModel(name: $name)';
