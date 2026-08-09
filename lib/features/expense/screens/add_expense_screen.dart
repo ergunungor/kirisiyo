@@ -407,6 +407,24 @@ Widget _buildEmojiSelector() {
     ExpenseProvider provider,
   ) async {
     if (!_formKey.currentState!.validate()) return;
+    if (_splitType == SplitType.custom) {
+      final totalAmount = double.tryParse(
+            _amountController.text.replaceAll(',', '.'),
+          ) ??
+          0.0;
+      final splitSum = _customSplits.values.fold(0.0, (a, b) => a + b);
+      if ((totalAmount - splitSum).abs() > 0.01) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Bölüştürme toplamı (${CurrencyFormatter.format(splitSum)}) '
+              'harcama tutarına (${CurrencyFormatter.format(totalAmount)}) eşit değil.',
+            ),
+          ),
+        );
+        return;
+      }
+    }
 
     if (_paidByMemberId == null) {
       ScaffoldMessenger.of(
