@@ -16,6 +16,8 @@ import '../../../core/widgets/app_button.dart';
 import '../../balance/screens/balances_screen.dart';
 import '../../../core/widgets/app_text_field.dart';
 
+import '../../../shared/widgets/liquid_glass_nav_bar.dart';
+
 /// Oda detay ekranı (ana hub).
 ///
 /// Developer 2 (Room Management) bu ekranı yönetir.
@@ -308,25 +310,23 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
   }
 
   Widget _buildBottomNav() {
-    return NavigationBar(
+    return LiquidGlassNavBar(
       selectedIndex: _selectedTab,
       onDestinationSelected: (index) => setState(() => _selectedTab = index),
-      backgroundColor: AppColors.surface,
-      indicatorColor: AppColors.primary.withOpacity(0.2),
-      destinations: const [
-        NavigationDestination(
-          icon: Icon(Icons.receipt_long_outlined),
-          selectedIcon: Icon(Icons.receipt_long_rounded),
+      items: const [
+        LiquidNavItem(
+          icon: Icons.receipt_long_outlined,
+          selectedIcon: Icons.receipt_long_rounded,
           label: 'Harcamalar',
         ),
-        NavigationDestination(
-          icon: Icon(Icons.account_balance_wallet_outlined),
-          selectedIcon: Icon(Icons.account_balance_wallet_rounded),
+        LiquidNavItem(
+          icon: Icons.account_balance_wallet_outlined,
+          selectedIcon: Icons.account_balance_wallet_rounded,
           label: 'Bakiyeler',
         ),
-        NavigationDestination(
-          icon: Icon(Icons.info_outline_rounded),
-          selectedIcon: Icon(Icons.info_rounded),
+        LiquidNavItem(
+          icon: Icons.info_outline_rounded,
+          selectedIcon: Icons.info_rounded,
           label: 'Oda',
         ),
       ],
