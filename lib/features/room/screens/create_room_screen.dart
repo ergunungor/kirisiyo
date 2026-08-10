@@ -12,6 +12,7 @@ import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/state_widgets.dart';
 import '../../../shared/widgets/shared_widgets.dart';
 import '../providers/room_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 /// Oda oluşturma ekranı.
 ///
@@ -184,6 +185,17 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
             icon: Icons.arrow_forward_rounded,
           ),
           const SizedBox(height: AppSpacing.md),
+          AppButton(
+            label: 'Bağlantıyı Paylaş',
+            onPressed: () async {
+              await Share.share(
+                'Kırışıyo grubuna katıl ve ortak harcamaları birlikte yönetelim!\n\nKatılım Bağlantısı: $shareLink',
+                subject: 'Kırışıyo Oda Daveti',
+              );
+            },
+            icon: Icons.ios_share_rounded,
+          ),
+          const SizedBox(height: AppSpacing.sm),
           AppButton(
             label: 'Bağlantıyı Kopyala',
             variant: AppButtonVariant.secondary,

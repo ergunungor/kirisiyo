@@ -3,12 +3,9 @@ import 'package:kirisiyo/core/constants/app_constants.dart';
 import '../../../core/services/base_repository.dart';
 import '../../../core/utils/room_code_generator.dart';
 import '../models/room_model.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // supabase nesnesi için
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Oda repository arayüzü.
-///
-/// Developer 2 (Room Management) bu arayüzü implemente eder.
-/// Test için mock implementasyon kolayca yazılabilir.
 abstract interface class IRoomRepository {
   Future<RoomModel> createRoom({
     required String name,
@@ -26,12 +23,16 @@ abstract interface class IRoomRepository {
     required String iban,
   });
 
+  Future<MemberModel> updateMemberPaymentInfo({
+    required String memberId,
+    String? fullName,
+    String? iban,
+  });
+
   Future<bool> roomExists(String code);
 }
 
 /// Oda repository implementasyonu.
-///
-/// Supabase client erişimi [BaseRepository.client] üzerinden yapılır.
 base class RoomRepository extends BaseRepository implements IRoomRepository {
   const RoomRepository();
 
@@ -44,7 +45,6 @@ base class RoomRepository extends BaseRepository implements IRoomRepository {
     required List<String> memberNames,
   }) async {
     try {
-      // Benzersiz kod üretme metodumuzu çağırıyoruz
       final code = await _generateUniqueCode();
 
       final roomResponse =
@@ -55,9 +55,6 @@ base class RoomRepository extends BaseRepository implements IRoomRepository {
               .single();
 
       final room = RoomModel.fromJson(roomResponse);
-
-      print("3 - Üyeler ekleniyor");
-      final uid = client.auth.currentUser?.id;
 
       final memberRows =
           memberNames
@@ -77,8 +74,6 @@ base class RoomRepository extends BaseRepository implements IRoomRepository {
           (membersResponse as List)
               .map((m) => MemberModel.fromJson(m as Map<String, dynamic>))
               .toList();
-
-      print("4 - Üyeler eklendi");
 
       return room.copyWith(members: members);
     } on RepositoryException {
@@ -176,6 +171,33 @@ base class RoomRepository extends BaseRepository implements IRoomRepository {
   }
 
   @override
+  Future<MemberModel> updateMemberPaymentInfo({
+    required String memberId,
+    String? fullName,
+    String? iban,
+  }) async {
+    try {
+      final updateData = <String, dynamic>{};
+      if (fullName != null) updateData['full_name'] = fullName;
+      if (iban != null) updateData['iban'] = iban;
+
+      final response =
+          await client
+              .from(_membersTable)
+              .update(updateData)
+              .eq('id', memberId)
+              .select()
+              .single();
+
+      return MemberModel.fromJson(response);
+    } catch (e) {
+      throw BackendException(
+        'Ödeme bilgileri güncellenirken bir hata oluştu: $e',
+      );
+    }
+  }
+
+  @override
   Future<bool> roomExists(String code) async {
     try {
       final response = await client
@@ -188,8 +210,6 @@ base class RoomRepository extends BaseRepository implements IRoomRepository {
     }
   }
 
-  /// Supabase'de benzersiz olan bir oda kodu üretir.
-  /// Sonsuz döngüyü engellemek için maksimum 5 deneme yapar.
   Future<String> _generateUniqueCode() async {
     for (var attempt = 0; attempt < 5; attempt++) {
       final code = RoomCodeGenerator.generate();

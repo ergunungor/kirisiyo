@@ -74,12 +74,15 @@ class RoomModel extends Equatable {
 
 /// Oda üyesi modeli.
 ///
+/// Oda üyesi modeli.
+///
 class MemberModel extends Equatable {
   const MemberModel({
     required this.id,
     required this.roomId,
     required this.name,
     required this.joinedAt,
+    this.fullName,
     this.iban,
   });
 
@@ -87,6 +90,9 @@ class MemberModel extends Equatable {
   final String roomId;
   final String name;
   final DateTime joinedAt;
+
+  /// Üyenin ödeme için kayıtlı Ad Soyad'ı (isteğe bağlı).
+  final String? fullName;
 
   /// Üyenin IBAN'ı (isteğe bağlı — henüz girmemiş olabilir).
   final String? iban;
@@ -98,9 +104,8 @@ class MemberModel extends Equatable {
       id: json['id'] as String,
       roomId: json['room_id'] as String,
       name: json['name'] as String,
-      joinedAt: DateTime.parse(
-        json['created_at'] as String,
-      ), // <--- SADECE BURASI DEĞİŞTİ
+      joinedAt: DateTime.parse(json['created_at'] as String),
+      fullName: json['full_name'] as String?,
       iban: json['iban'] as String?,
     );
   }
@@ -110,7 +115,8 @@ class MemberModel extends Equatable {
       'id': id,
       'room_id': roomId,
       'name': name,
-      'joined_at': joinedAt.toIso8601String(),
+      'created_at': joinedAt.toIso8601String(),
+      'full_name': fullName,
       'iban': iban,
     };
   }
@@ -122,6 +128,7 @@ class MemberModel extends Equatable {
     String? roomId,
     String? name,
     DateTime? joinedAt,
+    String? fullName,
     String? iban,
   }) {
     return MemberModel(
@@ -129,13 +136,14 @@ class MemberModel extends Equatable {
       roomId: roomId ?? this.roomId,
       name: name ?? this.name,
       joinedAt: joinedAt ?? this.joinedAt,
+      fullName: fullName ?? this.fullName,
       iban: iban ?? this.iban,
     );
   }
 
   @override
-  List<Object?> get props => [id, roomId, name, joinedAt, iban];
+  List<Object?> get props => [id, roomId, name, joinedAt, fullName, iban];
 
   @override
-  String toString() => 'MemberModel(name: $name)';
+  String toString() => 'MemberModel(name: $name, fullName: $fullName)';
 }

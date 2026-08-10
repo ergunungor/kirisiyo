@@ -3,7 +3,6 @@ import '../models/room_model.dart';
 import '../repositories/room_repository.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/local_storage_service.dart';
-import '../../../core/utils/validators.dart';
 
 /// Oda yönetimi state enum'u.
 enum RoomStatus { idle, loading, success, error }
@@ -111,13 +110,31 @@ class RoomProvider extends ChangeNotifier {
     }
   }
 
-  /// Oda koduna göre odayı yükler.
+  /// Oda koduna göre odayı yükler ve varsa önceden seçilmiş üyeyi eşleştirir.
   Future<void> loadRoomByCode(String code) async {
     _setLoading();
 
     try {
       final room = await _roomRepository.getRoomByCode(code);
       _currentRoom = room;
+
+      // ── KRİTİK DÜZELTME: Hafızadaki üye seçimini otomatik yükle ──────
+      final savedMemberId = LocalStorageService.getString(
+        AppConstants.prefCurrentMemberId,
+      );
+
+      if (savedMemberId != null && room.members.isNotEmpty) {
+        try {
+          _currentMember = room.members.firstWhere(
+            (m) => m.id == savedMemberId,
+          );
+        } catch (_) {
+          // Eğer kaydedilen üye o odada yoksa resetle
+          _currentMember = null;
+        }
+      }
+      // ─────────────────────────────────────────────────────────────────
+
       _setSuccess();
     } catch (e) {
       _setError(e.toString());
@@ -135,27 +152,38 @@ class RoomProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Kendi IBAN bilgisini günceller.
-  Future<void> updateMyIban(String iban) async {
-    final member = _currentMember;
-    final room = _currentRoom;
-    if (member == null || room == null) return;
+  Future<void> updateMyPaymentInfo({String? fullName, String? iban}) async {
+    if (_currentMember == null) return;
 
+    // _setLoading kullanmıyoruz çünkü ekranın yeniden yüklenmesini (loading spinner) istemiyoruz
+    // Sadece veri güncellensin, UI'da reaktif olarak değişsin.
     try {
-      final updated = await _roomRepository.updateMemberIban(
-        memberId: member.id,
+      await _roomRepository.updateMemberPaymentInfo(
+        memberId: _currentMember!.id,
+        fullName: fullName,
         iban: iban,
       );
 
-      _currentMember = updated;
-      _currentRoom = room.copyWith(
-        members:
-            room.members.map((m) => m.id == updated.id ? updated : m).toList(),
-      );
-      _errorMessage = null;
-      notifyListeners();
+      // 1. Güncel veriyi modelden kopya alarak güncelle
+      _currentMember = _currentMember!.copyWith(fullName: fullName, iban: iban);
+
+      // 2. Odanın içindeki üyeyi de bul ve güncelle (Önemli!)
+      if (_currentRoom != null) {
+        final updatedMembers =
+            _currentRoom!.members.map((m) {
+              if (m.id == _currentMember!.id) {
+                return m.copyWith(fullName: fullName, iban: iban);
+              }
+              return m;
+            }).toList();
+
+        _currentRoom = _currentRoom!.copyWith(members: updatedMembers);
+      }
+
+      notifyListeners(); // Arayüzün güncellenmesini tetikleyelim
     } catch (e) {
-      _setError(e.toString());
+      // Hata durumunda sessiz kalabiliriz veya log atabiliriz
+      debugPrint('Ödeme bilgisi güncellenemedi: $e');
     }
   }
 
