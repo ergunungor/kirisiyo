@@ -5,7 +5,8 @@ abstract final class AppConstants {
   // ── Uygulama Bilgileri ────────────────────────────────────────────────────
   static const String appName = 'Kırışıyo';
   static const String appVersion = '1.0.0';
-  static const String appTagline = 'Harcamalarını arkadaşlarınla kolayca paylaş';
+  static const String appTagline =
+      'Harcamalarını arkadaşlarınla kolayca paylaş';
 
   // ── Oda Ayarları ─────────────────────────────────────────────────────────
   /// Oda kodunun uzunluğu
@@ -33,7 +34,7 @@ abstract final class AppConstants {
   // ── Paylaşım Ayarları ────────────────────────────────────────────────────
   /// Derin link base URL'i (Firebase Hosting üzerinde)
   /// TODO [Developer 1]: Gerçek Firebase Hosting URL'inizi buraya ekleyin.
-  static const String deepLinkBaseUrl = 'https://kirisiyo.web.app';
+  static const String deepLinkBaseUrl = 'https://kirisiyoapp.web.app';
 
   /// Oda davet link şablonu
   static String roomInviteLink(String roomCode) =>

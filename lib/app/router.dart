@@ -81,59 +81,90 @@ final GoRouter appRouter = GoRouter(
     ),
 
     // ── Oda Yönetimi ─────────────────────────────────────────────────────────
+    // ── Oda Yönetimi ─────────────────────────────────────────────────────────
     GoRoute(
       path: AppRoutes.createRoom,
       name: 'createRoom',
-      builder: (context, state) => const CreateRoomScreen(),
+      pageBuilder:
+          (context, state) => _buildFadeSlidePage(
+            context: context,
+            state: state,
+            child: const CreateRoomScreen(),
+          ),
     ),
     GoRoute(
       path: AppRoutes.joinRoom,
       name: 'joinRoom',
-      builder: (context, state) => const JoinRoomScreen(),
+      pageBuilder:
+          (context, state) => _buildFadeSlidePage(
+            context: context,
+            state: state,
+            child: const JoinRoomScreen(),
+          ),
     ),
     GoRoute(
       path: AppRoutes.selectMember,
       name: 'selectMember',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final roomCode = state.pathParameters['roomCode']!;
-        return SelectMemberScreen(roomCode: roomCode);
+        return _buildFadeSlidePage(
+          context: context,
+          state: state,
+          child: SelectMemberScreen(roomCode: roomCode),
+        );
       },
     ),
     GoRoute(
       path: AppRoutes.roomDetail,
       name: 'roomDetail',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final roomCode = state.pathParameters['roomCode']!;
-        return RoomDetailScreen(roomCode: roomCode);
+        return _buildFadeSlidePage(
+          context: context,
+          state: state,
+          child: RoomDetailScreen(roomCode: roomCode),
+        );
       },
       routes: [
         // ── Harcamalar ─────────────────────────────────────────────────────
         GoRoute(
           path: 'expenses',
           name: 'expenses',
-          builder: (context, state) {
+          pageBuilder: (context, state) {
             final roomCode = state.pathParameters['roomCode']!;
-            return ExpensesScreen(roomCode: roomCode);
+            return _buildFadeSlidePage(
+              context: context,
+              state: state,
+              child: ExpensesScreen(roomCode: roomCode),
+            );
           },
           routes: [
             GoRoute(
               path: 'add',
               name: 'addExpense',
-              builder: (context, state) {
+              pageBuilder: (context, state) {
                 final roomCode = state.pathParameters['roomCode']!;
-                return AddExpenseScreen(roomCode: roomCode);
+                return _buildFadeSlidePage(
+                  context: context,
+                  state: state,
+                  child: AddExpenseScreen(roomCode: roomCode),
+                );
               },
             ),
 
             GoRoute(
               path: ':expenseId',
               name: 'expenseDetails',
-              builder: (context, state) {
+              pageBuilder: (context, state) {
                 final roomCode = state.pathParameters['roomCode']!;
                 final expenseId = state.pathParameters['expenseId']!;
-                return ExpenseDetailsScreen(
-                  roomCode: roomCode,
-                  expenseId: expenseId,
+                return _buildFadeSlidePage(
+                  context: context,
+                  state: state,
+                  child: ExpenseDetailsScreen(
+                    roomCode: roomCode,
+                    expenseId: expenseId,
+                  ),
                 );
               },
             ),
@@ -144,9 +175,13 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: 'balances',
           name: 'balances',
-          builder: (context, state) {
+          pageBuilder: (context, state) {
             final roomCode = state.pathParameters['roomCode']!;
-            return BalancesScreen(roomCode: roomCode);
+            return _buildFadeSlidePage(
+              context: context,
+              state: state,
+              child: BalancesScreen(roomCode: roomCode),
+            );
           },
         ),
       ],
@@ -183,3 +218,34 @@ final GoRouter appRouter = GoRouter(
         ),
       ),
 );
+
+Page<dynamic> _buildFadeSlidePage({
+  required BuildContext context,
+  required GoRouterState state,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 280),
+    reverseTransitionDuration: const Duration(milliseconds: 240),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      const begin = Offset(0.0, 0.05);
+      const end = Offset.zero;
+      final curveTween = CurveTween(curve: Curves.easeOutCubic);
+
+      final slideAnimation = animation.drive(
+        Tween(begin: begin, end: end).chain(curveTween),
+      );
+
+      final fadeAnimation = animation.drive(
+        Tween<double>(begin: 0.0, end: 1.0).chain(curveTween),
+      );
+
+      return FadeTransition(
+        opacity: fadeAnimation,
+        child: SlideTransition(position: slideAnimation, child: child),
+      );
+    },
+  );
+}

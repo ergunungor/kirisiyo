@@ -16,14 +16,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/supabase_service.dart';
 
 /// Bakiyeler ekranı.
-///
-/// Developer 5 (Backend & Balance Engine) bu ekranı yönetir.
-///
-/// Gösterilenler:
-///   - (Varsa) Premium ödeme talimatı kartları — kime ne kadar borçlusun
-///   - Kişisel bakiye kartı
-///   - Tüm üyelerin bakiyeleri
-///   - Ödeme tavsiyeleri (settlements)
 class BalancesScreen extends StatefulWidget {
   const BalancesScreen({super.key, required this.roomCode});
 
@@ -46,11 +38,6 @@ class _BalancesScreenState extends State<BalancesScreen> {
     });
   }
 
-  /// Oda ile ilgili harcama/ödeme değişikliklerini canlı dinler.
-  ///
-  /// expense_splits tablosunda room_id kolonu olmadığı için o tabloyu
-  /// filtresiz dinliyoruz (her değişiklikte bu odanın bakiyesini de
-  /// yeniden hesaplıyoruz — küçük ölçekli bir uygulama için sorun değil).
   void _subscribeToChanges(BuildContext context) {
     final roomId = context.read<RoomProvider>().currentRoom?.id;
     if (roomId == null || roomId == _subscribedRoomId) return;
@@ -123,9 +110,7 @@ class _BalancesScreenState extends State<BalancesScreen> {
             backgroundColor: AppColors.surface,
             title: const Text('Ödendi Olarak İşaretle'),
             content: const Text(
-              'Borcunu ödediğini onaylıyor musun? Bu işlem bakiyeni sıfırlar. '
-              'Diğer üyeler, Bakiyeler sekmesini bir sonraki açışlarında güncel '
-              'bakiyeyi görecek.',
+              'Borcunu ödediğini onaylıyor musun? Bu işlem bakiyeni sıfırlar.',
             ),
             actions: [
               TextButton(
@@ -186,24 +171,25 @@ class _BalancesScreenState extends State<BalancesScreen> {
               }
 
               final myDebts = provider.myBalance?.owes ?? const [];
-              final ibanByMemberId = <String, String?>{
+              final membersMap = {
                 for (final m in roomProvider.currentRoom?.members ?? const [])
-                  m.id: m.iban,
+                  m.id: m,
               };
 
               return ListView(
                 padding: AppSpacing.paddingPage,
                 children: [
-                  // ── Ödeme Talimatı Kartları (premium) ────────────────
+                  // ── Ödeme Talimatı Kartları ──────────────────────────────
                   for (final debt in myDebts) ...[
                     _PaymentInstructionCard(
                       debt: debt,
-                      creditorIban: ibanByMemberId[debt.toMemberId],
+                      creditorIban: membersMap[debt.toMemberId]?.iban,
+                      creditorRoomName: membersMap[debt.toMemberId]?.name,
+                      creditorFullName: membersMap[debt.toMemberId]?.fullName,
                     ),
                     const SizedBox(height: AppSpacing.md),
                   ],
 
-                  // ── Kişisel Bakiye Kartı ──────────────────────────────
                   // ── Kişisel Bakiye Kartı ──────────────────────────────
                   if (provider.myBalance != null) ...[
                     _MyBalanceCard(
@@ -248,19 +234,35 @@ class _BalancesScreenState extends State<BalancesScreen> {
   }
 }
 
-/// Borçlu olunan kişiye ödeme yapmak için gösterilen premium kart.
+/// Borçlu olunan kişiye ödeme yapmak için gösterilen kart.
 class _PaymentInstructionCard extends StatelessWidget {
   const _PaymentInstructionCard({
     required this.debt,
     required this.creditorIban,
+    this.creditorRoomName,
+    this.creditorFullName,
   });
 
   final DebtRecord debt;
   final String? creditorIban;
+  final String? creditorRoomName;
+  final String? creditorFullName;
 
   @override
   Widget build(BuildContext context) {
-    final hasIban = creditorIban != null && creditorIban!.isNotEmpty;
+    final hasIban = creditorIban != null && creditorIban!.trim().isNotEmpty;
+
+    // 1. Üyeler sayfasında girdiğimiz ODA İSMİ (Öncelikli olarak room_members.name)
+    final memberName =
+        (creditorRoomName != null && creditorRoomName!.trim().isNotEmpty)
+            ? creditorRoomName!
+            : debt.toMemberName;
+
+    // 2. Banka Transferi İçin Resmi Ad Soyad (Varsa full_name, yoksa oda ismi)
+    final bankAccountHolder =
+        (creditorFullName != null && creditorFullName!.trim().isNotEmpty)
+            ? creditorFullName!
+            : memberName;
 
     return AppCard(
       gradient: AppColors.premiumGradient,
@@ -290,7 +292,7 @@ class _PaymentInstructionCard extends StatelessWidget {
             text: TextSpan(
               style: AppTextStyles.bodyLarge.copyWith(color: Colors.white),
               children: [
-                TextSpan(text: '${debt.toMemberName} isimli kişiye '),
+                TextSpan(text: '$memberName kişisine '),
                 TextSpan(
                   text: CurrencyFormatter.format(debt.amount),
                   style: const TextStyle(fontWeight: FontWeight.w800),
@@ -309,19 +311,19 @@ class _PaymentInstructionCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             _CopyableRow(
               icon: Icons.person_rounded,
-              label: debt.toMemberName,
-              copyMessage: 'İsim kopyalandı!',
+              label: bankAccountHolder,
+              copyMessage: 'Alıcı Ad Soyad kopyalandı!',
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Borcunu bu bilgiler ile ödeyebilirsin.',
+              'Borcunu bu bilgiler ile banka uygulamandan ödeyebilirsin.',
               style: AppTextStyles.bodySmall.copyWith(
                 color: Colors.white.withOpacity(0.7),
               ),
             ),
           ] else
             Text(
-              '${debt.toMemberName} henüz IBAN bilgisini eklemedi.',
+              '$memberName henüz IBAN bilgisini eklemedi.',
               style: AppTextStyles.bodySmall.copyWith(
                 color: Colors.white.withOpacity(0.7),
               ),
@@ -332,7 +334,6 @@ class _PaymentInstructionCard extends StatelessWidget {
   }
 }
 
-/// Kopyalanabilir bilgi satırı (IBAN / isim).
 class _CopyableRow extends StatelessWidget {
   const _CopyableRow({
     required this.icon,
@@ -391,7 +392,6 @@ class _CopyableRow extends StatelessWidget {
   }
 }
 
-/// Kişisel bakiye kartı.
 class _MyBalanceCard extends StatelessWidget {
   const _MyBalanceCard({required this.balance, this.onMarkPaid});
   final BalanceModel balance;
@@ -447,7 +447,6 @@ class _MyBalanceCard extends StatelessWidget {
   }
 }
 
-/// "Ödendi" butonu — bakiye kartının sağında gösterilir.
 class _MarkPaidButton extends StatelessWidget {
   const _MarkPaidButton({required this.onPressed});
   final VoidCallback onPressed;
@@ -486,7 +485,6 @@ class _MarkPaidButton extends StatelessWidget {
   }
 }
 
-/// Üye bakiye satırı.
 class _BalanceListTile extends StatelessWidget {
   const _BalanceListTile({required this.balance});
   final BalanceModel balance;
@@ -508,7 +506,6 @@ class _BalanceListTile extends StatelessWidget {
   }
 }
 
-/// Ödeme tavsiyesi kartı.
 class _SettlementCard extends StatelessWidget {
   const _SettlementCard({required this.settlement});
   final SettlementModel settlement;

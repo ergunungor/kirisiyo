@@ -39,6 +39,7 @@ class RoomDetailScreen extends StatefulWidget {
 
 class _RoomDetailScreenState extends State<RoomDetailScreen> {
   int _selectedTab = 0;
+  final _fullNameController = TextEditingController();
   final _ibanController = TextEditingController();
   bool _ibanInitialized = false;
 
@@ -53,6 +54,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
 
   @override
   void dispose() {
+    _fullNameController.dispose();
     _ibanController.dispose();
     super.dispose();
   }
@@ -83,7 +85,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
                     );
                   }
                 },
-                icon: const Icon(Icons.share_rounded),
+                icon: const Icon(Icons.ios_share_rounded),
                 tooltip: 'Odayı Paylaş',
               ),
             ],
@@ -143,6 +145,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
     if (room == null) return const SizedBox.shrink();
 
     if (!_ibanInitialized) {
+      _fullNameController.text = provider.currentMember?.fullName ?? '';
       _ibanController.text = provider.currentMember?.iban ?? '';
       _ibanInitialized = true;
     }
@@ -175,7 +178,20 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
                   children: [
                     MemberAvatar(name: member.name),
                     const SizedBox(width: AppSpacing.md),
-                    Text(member.name, style: AppTextStyles.bodyLarge),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(member.name, style: AppTextStyles.bodyLarge),
+                        if (member.fullName != null &&
+                            member.fullName!.isNotEmpty)
+                          Text(
+                            member.fullName!,
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                      ],
+                    ),
                     if (provider.currentMember?.id == member.id) ...[
                       const SizedBox(width: AppSpacing.sm),
                       Container(
@@ -201,34 +217,44 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
                 ),
               ),
             ),
-            if (provider.currentMember != null) ...[
-              const SizedBox(height: AppSpacing.xl),
-              Text('IBAN Bilgin', style: AppTextStyles.headlineSmall),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                'Sana borcu olanlar bu IBAN üzerinden ödeme yapabilsin diye ekle.',
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              AppTextField(
-                label: 'IBAN',
-                hint: 'TR00 0000 0000 0000 0000 0000 00',
-                controller: _ibanController,
-                prefixIcon: Icons.account_balance_rounded,
-                textCapitalization: TextCapitalization.characters,
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              AppButton(
-                label: 'IBAN\'ı Kaydet',
-                variant: AppButtonVariant.secondary,
-                icon: Icons.save_rounded,
-                isFullWidth: false,
-                onPressed: () => _saveIban(context, provider),
-              ),
-            ],
+
+            // ── Ödeme Bilgileri (Ad Soyad + IBAN) ──
             const SizedBox(height: AppSpacing.xl),
+            Text('Ödeme Bilgilerin', style: AppTextStyles.headlineSmall),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Sana borcu olanlar transfer yaparken bu Ad Soyad ve IBAN bilgilerini görsün.',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            AppTextField(
+              label: 'Ad Soyad (Banka Hesabı Sahibi)',
+              hint: 'Örn: Ahmet Yılmaz',
+              controller: _fullNameController,
+              prefixIcon: Icons.badge_rounded,
+              textCapitalization: TextCapitalization.words,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            AppTextField(
+              label: 'IBAN',
+              hint: 'TR00 0000 0000 0000 0000 0000 00',
+              controller: _ibanController,
+              prefixIcon: Icons.account_balance_rounded,
+              textCapitalization: TextCapitalization.characters,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            AppButton(
+              label: 'Bilgileri Kaydet',
+              variant: AppButtonVariant.secondary,
+              icon: Icons.save_rounded,
+              isFullWidth: false,
+              onPressed: () => _savePaymentInfo(context, provider),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+
+            // ── Odadan Çık Butonu ──
             AppButton(
               label: 'Odadan Çık',
               variant: AppButtonVariant.danger,
@@ -242,11 +268,17 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
     );
   }
 
-  Future<void> _saveIban(BuildContext context, RoomProvider provider) async {
-    final raw = _ibanController.text.trim().toUpperCase().replaceAll(' ', '');
-    if (raw.isEmpty) return;
+  Future<void> _savePaymentInfo(
+    BuildContext context,
+    RoomProvider provider,
+  ) async {
+    final fullName = _fullNameController.text.trim();
+    final rawIban = _ibanController.text.trim().toUpperCase().replaceAll(
+      ' ',
+      '',
+    );
 
-    if (!RegExp(r'^TR\d{24}$').hasMatch(raw)) {
+    if (rawIban.isNotEmpty && !RegExp(r'^TR\d{24}$').hasMatch(rawIban)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -257,15 +289,18 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
       return;
     }
 
-    await provider.updateMyIban(raw);
+    await provider.updateMyPaymentInfo(
+      fullName: fullName.isEmpty ? null : fullName,
+      iban: rawIban.isEmpty ? null : rawIban,
+    );
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             provider.hasError
-                ? (provider.errorMessage ?? 'IBAN kaydedilemedi.')
-                : 'IBAN kaydedildi.',
+                ? (provider.errorMessage ?? 'Bilgiler kaydedilemedi.')
+                : 'Ödeme bilgilerin kaydedildi.',
           ),
         ),
       );
@@ -315,19 +350,19 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
       onDestinationSelected: (index) => setState(() => _selectedTab = index),
       items: const [
         LiquidNavItem(
-          icon: Icons.receipt_long_outlined,
-          selectedIcon: Icons.receipt_long_rounded,
+          icon: Icons.view_agenda_outlined,
+          selectedIcon: Icons.view_agenda_rounded,
           label: 'Harcamalar',
         ),
         LiquidNavItem(
-          icon: Icons.account_balance_wallet_outlined,
-          selectedIcon: Icons.account_balance_wallet_rounded,
+          icon: Icons.pie_chart_outline_rounded,
+          selectedIcon: Icons.pie_chart_rounded,
           label: 'Bakiyeler',
         ),
         LiquidNavItem(
-          icon: Icons.info_outline_rounded,
-          selectedIcon: Icons.info_rounded,
-          label: 'Oda',
+          icon: Icons.diversity_3_outlined,
+          selectedIcon: Icons.diversity_3_rounded,
+          label: 'Üyeler',
         ),
       ],
     );

@@ -8,18 +8,11 @@ import '../../../app/router.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/loading_widget.dart';
 import '../../../core/widgets/state_widgets.dart';
-import '../../../shared/widgets/shared_widgets.dart';
 import '../../../core/utils/formatters.dart';
 import '../models/expense_model.dart';
 import '../providers/expense_provider.dart';
 import '../../room/providers/room_provider.dart';
-import '../../room/providers/room_provider.dart';
 
-/// Harcamalar listesi ekranı.
-///
-/// Developer 3 (Expense Management) bu ekranı yönetir.
-///
-/// TODO [Developer 3]: Gerçek veriyi provider üzerinden yükleyin.
 class ExpensesScreen extends StatefulWidget {
   const ExpensesScreen({super.key, required this.roomCode});
 
@@ -62,7 +55,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 return ErrorStateWidget(
                   message: provider.errorMessage ?? 'Harcamalar yüklenemedi.',
                   onRetry: () {
-                    // TODO [Developer 3]: loadExpenses() çağırın
+                    final roomId = context.read<RoomProvider>().currentRoom?.id;
+                    if (roomId != null) {
+                      provider.loadExpenses(roomId);
+                    }
                   },
                 );
               }
@@ -146,9 +142,10 @@ class _ExpenseListTile extends StatelessWidget {
           ),
           Consumer<RoomProvider>(
             builder: (context, roomProvider, _) {
-              final payer = roomProvider.currentRoom?.members
-                  .where((m) => m.id == expense.paidByMemberId)
-                  .firstOrNull;
+              final payer =
+                  roomProvider.currentRoom?.members
+                      .where((m) => m.id == expense.paidByMemberId)
+                      .firstOrNull;
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
