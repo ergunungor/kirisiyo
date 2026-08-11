@@ -20,9 +20,6 @@ void main() async {
 
   // ── Servis Başlatma ───────────────────────────────────────────────────────
   await LocalStorageService.initialize();
-
-  // TODO [Developer 5]: Supabase URL ve Anon Key'i ayarladıktan sonra
-  //   aşağıdaki satırı uncomment edin.
   await SupabaseService.initialize();
 
   runApp(const KirisiyoApp());

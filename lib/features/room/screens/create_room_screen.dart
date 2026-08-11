@@ -195,20 +195,6 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
             },
             icon: Icons.ios_share_rounded,
           ),
-          const SizedBox(height: AppSpacing.sm),
-          AppButton(
-            label: 'Bağlantıyı Kopyala',
-            variant: AppButtonVariant.secondary,
-            onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: shareLink));
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Bağlantı kopyalandı!')),
-                );
-              }
-            },
-            icon: Icons.copy_rounded,
-          ),
         ],
       ),
     );
@@ -226,7 +212,10 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (provider.pendingMemberNames.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('En az bir katılımcı ekleyin.')),
+        const SnackBar(
+          duration: const Duration(seconds: 2),
+          content: Text('En az bir katılımcı ekleyin.'),
+        ),
       );
       return;
     }
@@ -239,6 +228,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
     if (provider.hasError && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
+          duration: const Duration(seconds: 2),
           content: Text(provider.errorMessage ?? AppConstants.errorGeneric),
         ),
       );

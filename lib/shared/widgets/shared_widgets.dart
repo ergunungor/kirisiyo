@@ -45,17 +45,19 @@ class MemberAvatar extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
         shape: BoxShape.circle,
-        border: isSelected
-            ? Border.all(color: AppColors.primary, width: 2.5)
-            : null,
-        boxShadow: isSelected
-            ? [
-                BoxShadow(
-                  color: AppColors.primary.withOpacity(0.4),
-                  blurRadius: 8,
-                ),
-              ]
-            : null,
+        border:
+            isSelected
+                ? Border.all(color: AppColors.primary, width: 2.5)
+                : null,
+        boxShadow:
+            isSelected
+                ? [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.4),
+                    blurRadius: 8,
+                  ),
+                ]
+                : null,
       ),
       child: Center(
         child: Text(
@@ -152,12 +154,17 @@ class AppScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
-      appBar: title != null
-          ? AppBar(
-              title: Text(title!),
-              actions: actions,
-            )
-          : null,
+      appBar:
+          title != null
+              ? AppBar(
+                title: Text(
+                  title!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                actions: actions,
+              )
+              : null,
       resizeToAvoidBottomInset: resizeToAvoidBottomInset,
       floatingActionButton: floatingActionButton,
       bottomNavigationBar: bottomNavigationBar,
@@ -166,12 +173,10 @@ class AppScaffold extends StatelessWidget {
           constraints: const BoxConstraints(
             maxWidth: AppSpacing.maxContentWidth,
           ),
-          child: padding
-              ? Padding(
-                  padding: AppSpacing.paddingPage,
-                  child: body,
-                )
-              : body,
+          child:
+              padding
+                  ? Padding(padding: AppSpacing.paddingPage, child: body)
+                  : body,
         ),
       ),
     );

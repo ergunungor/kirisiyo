@@ -31,16 +31,6 @@ abstract interface class IExpenseRepository {
   });
 }
 
-/// Harcama repository implementasyonu.
-///
-/// TODO [Developer 3]: Supabase sorgularını implement edin.
-///   - expenses tablosundan SELECT WHERE room_id = ? (getExpensesByRoom)
-///   - expenses tablosuna INSERT (createExpense)
-///   - expenses tablosuna UPDATE (updateExpense)
-///   - expenses tablosundan DELETE WHERE id = ? (deleteExpense)
-///   - expense_splits tablosuna INSERT (saveExpenseSplits)
-///
-/// Supabase Storage'ı fiş fotoğrafları için kullanın (Dev 4 ile koordineli).
 class ExpenseRepository implements IExpenseRepository {
   const ExpenseRepository();
 

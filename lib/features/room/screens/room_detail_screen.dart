@@ -68,7 +68,11 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
         return Scaffold(
           backgroundColor: AppColors.backgroundDark,
           appBar: AppBar(
-            title: Text(room?.name ?? 'Oda'),
+            title: Text(
+              room?.name ?? 'Oda',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             actions: [
               IconButton(
                 onPressed: () async {
@@ -80,6 +84,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
+                        duration: Duration(seconds: 2),
                         content: Text('Davet bağlantısı kopyalandı!'),
                       ),
                     );
@@ -133,11 +138,11 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
   }
 
   Widget _buildExpensesTab(BuildContext context) {
-    return ExpensesScreen(roomCode: widget.roomCode);
+    return ExpensesScreen(roomCode: widget.roomCode, embedded: true);
   }
 
   Widget _buildBalancesTab(BuildContext context) {
-    return BalancesScreen(roomCode: widget.roomCode);
+    return BalancesScreen(roomCode: widget.roomCode, embedded: true);
   }
 
   Widget _buildRoomInfoTab(BuildContext context, RoomProvider provider) {
@@ -281,6 +286,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
     if (rawIban.isNotEmpty && !RegExp(r'^TR\d{24}$').hasMatch(rawIban)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
+          duration: Duration(seconds: 2),
           content: Text(
             'Geçerli bir IBAN girin (TR ile başlamalı, 26 karakter).',
           ),
@@ -297,6 +303,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
+          duration: Duration(seconds: 2),
           content: Text(
             provider.hasError
                 ? (provider.errorMessage ?? 'Bilgiler kaydedilemedi.')

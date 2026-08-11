@@ -122,6 +122,7 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
     if (provider.hasError) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
+          duration: const Duration(seconds: 2),
           content: Text(
             provider.errorMessage ?? AppConstants.errorRoomNotFound,
           ),
@@ -129,7 +130,6 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
       );
       return;
     }
-
 
     if (provider.currentRoom != null) {
       context.push(AppRoutes.selectMemberPath(code));
