@@ -3,6 +3,7 @@ import 'app/app.dart';
 import 'core/services/supabase_service.dart';
 import 'core/services/local_storage_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 
 /// Kırışıyo — Uygulama giriş noktası.
 ///
@@ -15,6 +16,7 @@ import 'package:intl/date_symbol_data_local.dart';
 ///   4. App çalıştır
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  usePathUrlStrategy();
 
   await initializeDateFormatting('tr_TR', null);
 
