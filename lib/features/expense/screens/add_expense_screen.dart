@@ -477,6 +477,14 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       );
       return;
     }
+    if (_selectedMemberIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Lütfen en az bir katılımcı seçin.'),
+        ),
+      );
+      return;
+    }
 
     // Provider'ları ve aktif odayı context üzerinden buluyoruz
     final expenseProvider = context.read<ExpenseProvider>();
