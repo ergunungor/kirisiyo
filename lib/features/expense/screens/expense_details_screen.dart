@@ -51,15 +51,6 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
       backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
         title: const Text('Harcama Detayı'),
-        actions: [
-          IconButton(
-            onPressed: () {
-              // TODO [Developer 3]: Silme onay dialogu göster.
-            },
-            icon: const Icon(Icons.delete_outline_rounded),
-            tooltip: 'Sil',
-          ),
-        ],
       ),
       body: Center(
         child: ConstrainedBox(
