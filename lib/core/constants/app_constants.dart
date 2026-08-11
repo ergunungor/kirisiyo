@@ -33,7 +33,7 @@ abstract final class AppConstants {
 
   // ── Paylaşım Ayarları ────────────────────────────────────────────────────
   /// Derin link base URL'i (Firebase Hosting üzerinde)
-  /// TODO [Developer 1]: Gerçek Firebase Hosting URL'inizi buraya ekleyin.
+
   static const String deepLinkBaseUrl = 'https://kirisiyoapp.web.app';
 
   /// Oda davet link şablonu

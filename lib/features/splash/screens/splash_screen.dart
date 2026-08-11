@@ -6,13 +6,6 @@ import '../../../app/app_text_styles.dart';
 import '../../../app/router.dart';
 import '../../../core/constants/app_constants.dart';
 
-/// Splash ekranı.
-///
-/// Uygulama açılışında gösterilen animasyonlu logo ekranı.
-/// Developer 1 (Frontend Lead) bu ekranı yönetir.
-///
-/// TODO [Developer 1]: Logo asset'i hazır olduğunda
-///   [_buildLogo] metodunu güncelleyin.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -54,33 +47,28 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Widget _buildLogo() {
-    // TODO [Developer 1]: Gerçek logo asset'i buraya ekleyin.
-    //   Image.asset('assets/images/logo.png') veya SVG kullanın.
     return Container(
-      width: 120,
-      height: 120,
-      decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowDark,
-            blurRadius: 40,
-            spreadRadius: 8,
+          width: 120,
+          height: 120,
+          decoration: BoxDecoration(
+            gradient: AppColors.primaryGradient,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.shadowDark,
+                blurRadius: 40,
+                spreadRadius: 8,
+              ),
+            ],
           ),
-        ],
-      ),
-      child: const Center(
-        child: Text(
-          '₺',
-          style: TextStyle(
-            fontSize: 56,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
+          child: const Center(
+            child: Image(
+              image: AssetImage('assets/images/logo_mark.png'),
+              width: 70,
+              height: 70,
+            ),
           ),
-        ),
-      ),
-    )
+        )
         .animate()
         .scale(
           duration: 600.ms,
@@ -92,29 +80,17 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Widget _buildAppName() {
-    return Text(
-      AppConstants.appName,
-      style: AppTextStyles.displayLarge,
-    )
+    return Text(AppConstants.appName, style: AppTextStyles.displayLarge)
         .animate(delay: 300.ms)
-        .slideY(
-          begin: 0.3,
-          end: 0,
-          duration: 500.ms,
-          curve: Curves.easeOut,
-        )
+        .slideY(begin: 0.3, end: 0, duration: 500.ms, curve: Curves.easeOut)
         .fadeIn(duration: 400.ms);
   }
 
   Widget _buildTagline() {
     return Text(
       AppConstants.appTagline,
-      style: AppTextStyles.bodyMedium.copyWith(
-        color: AppColors.textSecondary,
-      ),
+      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
       textAlign: TextAlign.center,
-    )
-        .animate(delay: 500.ms)
-        .fadeIn(duration: 400.ms);
+    ).animate(delay: 500.ms).fadeIn(duration: 400.ms);
   }
 }

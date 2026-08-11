@@ -14,10 +14,17 @@ import '../providers/expense_provider.dart';
 import '../../room/providers/room_provider.dart';
 
 class ExpensesScreen extends StatefulWidget {
-  const ExpensesScreen({super.key, required this.roomCode});
+  const ExpensesScreen({
+    super.key,
+    required this.roomCode,
+    this.embedded = false,
+  });
 
   final String roomCode;
 
+  /// true ise (RoomDetailScreen'de sekme olarak gömülüyken) kendi
+  /// Scaffold/AppBar'ını göstermez — dıştaki appbar'la çakışmasın diye.
+  final bool embedded;
   @override
   State<ExpensesScreen> createState() => _ExpensesScreenState();
 }
@@ -37,64 +44,65 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final content = Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: AppSpacing.maxContentWidth),
+        child: Consumer<ExpenseProvider>(
+          builder: (context, provider, _) {
+            if (provider.isLoading) {
+              return const LoadingWidget(message: 'Harcamalar yükleniyor...');
+            }
+
+            if (provider.hasError) {
+              return ErrorStateWidget(
+                message: provider.errorMessage ?? 'Harcamalar yüklenemedi.',
+                onRetry: () {
+                  final roomId = context.read<RoomProvider>().currentRoom?.id;
+                  if (roomId != null) {
+                    provider.loadExpenses(roomId);
+                  }
+                },
+              );
+            }
+
+            if (provider.expenses.isEmpty) {
+              return const EmptyStateWidget(
+                title: 'Harcama Yok',
+                description: 'Henüz harcama eklenmemiş. İlk harcamayı ekleyin!',
+                icon: Icons.receipt_long_rounded,
+              );
+            }
+
+            return ListView.separated(
+              padding: AppSpacing.paddingPage,
+              itemCount: provider.expenses.length,
+              separatorBuilder:
+                  (_, __) => const SizedBox(height: AppSpacing.sm),
+              itemBuilder: (context, index) {
+                final expense = provider.expenses[index];
+                return _ExpenseListTile(
+                  expense: expense,
+                  onTap:
+                      () => context.push(
+                        AppRoutes.expenseDetailsPath(
+                          widget.roomCode,
+                          expense.id,
+                        ),
+                      ),
+                );
+              },
+            );
+          },
+        ),
+      ),
+    );
+
+    if (widget.embedded) return content;
+
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(title: const Text('Harcamalar')),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxWidth: AppSpacing.maxContentWidth,
-          ),
-          child: Consumer<ExpenseProvider>(
-            builder: (context, provider, _) {
-              if (provider.isLoading) {
-                return const LoadingWidget(message: 'Harcamalar yükleniyor...');
-              }
-
-              if (provider.hasError) {
-                return ErrorStateWidget(
-                  message: provider.errorMessage ?? 'Harcamalar yüklenemedi.',
-                  onRetry: () {
-                    final roomId = context.read<RoomProvider>().currentRoom?.id;
-                    if (roomId != null) {
-                      provider.loadExpenses(roomId);
-                    }
-                  },
-                );
-              }
-
-              if (provider.expenses.isEmpty) {
-                return const EmptyStateWidget(
-                  title: 'Harcama Yok',
-                  description:
-                      'Henüz harcama eklenmemiş. İlk harcamayı ekleyin!',
-                  icon: Icons.receipt_long_rounded,
-                );
-              }
-
-              return ListView.separated(
-                padding: AppSpacing.paddingPage,
-                itemCount: provider.expenses.length,
-                separatorBuilder:
-                    (_, __) => const SizedBox(height: AppSpacing.sm),
-                itemBuilder: (context, index) {
-                  final expense = provider.expenses[index];
-                  return _ExpenseListTile(
-                    expense: expense,
-                    onTap:
-                        () => context.push(
-                          AppRoutes.expenseDetailsPath(
-                            widget.roomCode,
-                            expense.id,
-                          ),
-                        ),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ),
+      body: content,
     );
   }
 }

@@ -16,6 +16,8 @@ import '../../room/models/room_model.dart';
 import 'package:uuid/uuid.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 
+import '../../../shared/widgets/shared_widgets.dart';
+
 /// Harcama ekleme ekranı.
 ///
 /// Developer 3 (Expense Management) bu ekranı yönetir.
@@ -219,7 +221,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         Text('Kim Ödedi?', style: AppTextStyles.labelMedium),
         const SizedBox(height: AppSpacing.sm),
         SizedBox(
-          height: 60,
+          height: 56,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: members.length,
@@ -233,7 +235,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   duration: const Duration(milliseconds: 150),
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
+                    vertical: AppSpacing.xs,
                   ),
                   decoration: BoxDecoration(
                     color:
@@ -246,14 +248,21 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       width: isSelected ? 2 : 1,
                     ),
                   ),
-                  child: Text(
-                    member.name,
-                    style: AppTextStyles.labelMedium.copyWith(
-                      color:
-                          isSelected
-                              ? AppColors.primary
-                              : AppColors.textPrimary,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      MemberAvatar(name: member.name, size: AvatarSize.small),
+                      const SizedBox(width: AppSpacing.xs),
+                      Text(
+                        member.name,
+                        style: AppTextStyles.labelMedium.copyWith(
+                          color:
+                              isSelected
+                                  ? AppColors.primary
+                                  : AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -263,7 +272,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       ],
     );
   }
-Widget _buildEmojiSelector() {
+
+  Widget _buildEmojiSelector() {
     return AppCard(
       onTap: () {
         showModalBottomSheet(
@@ -327,11 +337,44 @@ Widget _buildEmojiSelector() {
           ],
           selected: {provider.splitType},
           onSelectionChanged: (s) {
-  provider.setSplitType(s.first);
-  setState(() => _splitType = s.first);
-},
+            provider.setSplitType(s.first);
+            setState(() => _splitType = s.first);
+          },
         ),
         const SizedBox(height: AppSpacing.md),
+        if (members.isNotEmpty)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () {
+                final allSelected = members.every(
+                  (m) => _selectedMemberIds.contains(m.id),
+                );
+                setState(() {
+                  if (allSelected) {
+                    _selectedMemberIds.clear();
+                    _customSplits.clear();
+                  } else {
+                    _selectedMemberIds = members.map((m) => m.id).toList();
+                  }
+                  if (_splitType == SplitType.equal) {
+                    _calculateEqualSplit();
+                  }
+                });
+              },
+              icon: Icon(
+                members.every((m) => _selectedMemberIds.contains(m.id))
+                    ? Icons.remove_done_rounded
+                    : Icons.done_all_rounded,
+                size: 18,
+              ),
+              label: Text(
+                members.every((m) => _selectedMemberIds.contains(m.id))
+                    ? 'Seçimi Kaldır'
+                    : 'Hepsini Seç',
+              ),
+            ),
+          ),
         // --- Developer 3: Katılımcı Seçimi (Adım 6) ---
         // --- Developer 3: Katılımcı Seçimi ve Özel Tutar Girişi (Adım 6 & 8) ---
         Column(
@@ -408,14 +451,13 @@ Widget _buildEmojiSelector() {
   ) async {
     if (!_formKey.currentState!.validate()) return;
     if (_splitType == SplitType.custom) {
-      final totalAmount = double.tryParse(
-            _amountController.text.replaceAll(',', '.'),
-          ) ??
-          0.0;
+      final totalAmount =
+          double.tryParse(_amountController.text.replaceAll(',', '.')) ?? 0.0;
       final splitSum = _customSplits.values.fold(0.0, (a, b) => a + b);
       if ((totalAmount - splitSum).abs() > 0.01) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
+            duration: const Duration(seconds: 2),
             content: Text(
               'Bölüştürme toplamı (${CurrencyFormatter.format(splitSum)}) '
               'harcama tutarına (${CurrencyFormatter.format(totalAmount)}) eşit değil.',
@@ -427,9 +469,12 @@ Widget _buildEmojiSelector() {
     }
 
     if (_paidByMemberId == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Lütfen ödeyeni seçin.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          duration: const Duration(seconds: 2),
+          content: Text('Lütfen ödeyeni seçin.'),
+        ),
+      );
       return;
     }
 
@@ -469,10 +514,10 @@ Widget _buildEmojiSelector() {
     );
 
     // Veritabanına (Supabase) yolla
-try {
+    try {
       // 1. Supabase'e yolla
       await expenseProvider.createExpense(expense);
-      
+
       // 2. İşlem başarılıysa sayfayı kapat
       if (context.mounted) {
         context.pop();
