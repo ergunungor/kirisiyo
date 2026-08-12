@@ -15,7 +15,7 @@ import '../../expense/screens/expenses_screen.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../balance/screens/balances_screen.dart';
 import '../../../core/widgets/app_text_field.dart';
-
+import 'package:kirisiyo/core/services/local_storage_service.dart';
 import '../../../shared/widgets/liquid_glass_nav_bar.dart';
 
 /// Oda detay ekranı (ana hub).
@@ -44,13 +44,32 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
   bool _ibanInitialized = false;
 
   @override
-  void initState() {
-    super.initState();
+void initState() {
+  super.initState();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<RoomProvider>().loadRoomByCode(widget.roomCode);
-    });
-  }
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    final roomProvider = context.read<RoomProvider>();
+    await roomProvider.loadRoomByCode(widget.roomCode);
+    if (!mounted) return;
+
+    if (roomProvider.hasError || roomProvider.currentRoom == null) {
+      // Oda silinmiş — kirli local kaydı temizle, ana sayfaya dön
+      await LocalStorageService.remove(AppConstants.prefCurrentRoomCode);
+      await LocalStorageService.remove(AppConstants.prefCurrentMemberId);
+      if (!mounted) return;
+      context.go(
+  AppRoutes.home,
+  extra: 'Bu oda artık mevcut değil. Silinmiş olabilir.',
+);
+      return;
+    }
+
+    if (roomProvider.currentMember == null) {
+      // Oda var ama kayıtlı üye artık geçersiz — tekrar sor
+      context.go(AppRoutes.selectMemberPath(widget.roomCode));
+    }
+  });
+}
 
   @override
   void dispose() {
