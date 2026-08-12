@@ -79,18 +79,52 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               separatorBuilder:
                   (_, __) => const SizedBox(height: AppSpacing.sm),
               itemBuilder: (context, index) {
-                final expense = provider.expenses[index];
-                return _ExpenseListTile(
-                  expense: expense,
-                  onTap:
-                      () => context.push(
-                        AppRoutes.expenseDetailsPath(
-                          widget.roomCode,
-                          expense.id,
-                        ),
+                  final expense = provider.expenses[index];
+                  return Dismissible(
+                    key: Key(expense.id),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
                       ),
-                );
-              },
+                      decoration: BoxDecoration(
+                        color: AppColors.debtRed,
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                      ),
+                      child: const Icon(
+                        Icons.delete_outline_rounded,
+                        color: Colors.white,
+                      ),
+                    ),
+                    onDismissed: (_) async {
+                      print('SILME TETIKLENDI: ${expense.id}');
+                      try {
+                        await context
+                            .read<ExpenseProvider>()
+                            .deleteExpense(expense.id);
+                        print('SILME BASARILI');
+                      } catch (e) {
+                        print('SILME HATASI: $e');
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Silinemedi: $e')),
+                          );
+                        }
+                      }
+                    },
+                    child: _ExpenseListTile(
+                      expense: expense,
+                      onTap:
+                          () => context.push(
+                            AppRoutes.expenseDetailsPath(
+                              widget.roomCode,
+                              expense.id,
+                            ),
+                          ),
+                    ),
+                  );
+                },
             );
           },
         ),
