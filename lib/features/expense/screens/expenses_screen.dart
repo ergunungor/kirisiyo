@@ -97,8 +97,21 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         color: Colors.white,
                       ),
                     ),
-                    onDismissed: (_) {
-                      context.read<ExpenseProvider>().deleteExpense(expense.id);
+                    onDismissed: (_) async {
+                      print('SILME TETIKLENDI: ${expense.id}');
+                      try {
+                        await context
+                            .read<ExpenseProvider>()
+                            .deleteExpense(expense.id);
+                        print('SILME BASARILI');
+                      } catch (e) {
+                        print('SILME HATASI: $e');
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Silinemedi: $e')),
+                          );
+                        }
+                      }
                     },
                     child: _ExpenseListTile(
                       expense: expense,
