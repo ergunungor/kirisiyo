@@ -1,9 +1,6 @@
-import 'package:kirisiyo/core/constants/app_constants.dart';
-
 import '../../../core/services/base_repository.dart';
 import '../../../core/utils/room_code_generator.dart';
 import '../models/room_model.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Oda repository arayüzü.
 abstract interface class IRoomRepository {
@@ -30,6 +27,8 @@ abstract interface class IRoomRepository {
   });
 
   Future<bool> roomExists(String code);
+
+  Future<void> claimMember(String memberId);
 }
 
 /// Oda repository implementasyonu.
@@ -207,6 +206,15 @@ base class RoomRepository extends BaseRepository implements IRoomRepository {
       return (response as List).isNotEmpty;
     } catch (e) {
       throw BackendException('Oda kontrol edilirken bir hata oluştu: $e');
+    }
+  }
+
+  @override
+  Future<void> claimMember(String memberId) async {
+    try {
+      await client.rpc('claim_room_member', params: {'p_member_id': memberId});
+    } catch (e) {
+      throw BackendException('Üyelik doğrulanamadı: $e');
     }
   }
 
