@@ -9,18 +9,6 @@ import '../../../core/utils/formatters.dart';
 import '../providers/expense_provider.dart';
 import '../../room/providers/room_provider.dart';
 
-/// Harcama detay ekranı.
-///
-/// Developer 3 (Expense Management) bu ekranı yönetir.
-///
-/// Gösterilenler:
-///   - Harcama başlığı, miktarı
-///   - Ödeyeni
-///   - Katılımcılar ve pay miktarları
-///   - Tarih
-///   - Fiş fotoğrafı (varsa)
-///
-/// TODO [Developer 3]: Gerçek veriyi provider üzerinden yükleyin.
 class ExpenseDetailsScreen extends StatefulWidget {
   const ExpenseDetailsScreen({
     super.key,
@@ -40,8 +28,7 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // TODO [Developer 3]: Harcamayı yükleyin.
-    context.read<ExpenseProvider>().loadExpenseById(widget.expenseId);
+      context.read<ExpenseProvider>().loadExpenseById(widget.expenseId);
     });
   }
 
@@ -54,7 +41,9 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: AppSpacing.maxContentWidth),
+          constraints: const BoxConstraints(
+            maxWidth: AppSpacing.maxContentWidth,
+          ),
           child: Consumer<ExpenseProvider>(
             builder: (context, provider, _) {
               if (provider.isLoading) {
@@ -66,9 +55,7 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
               if (expense == null || provider.hasError) {
                 return ErrorStateWidget(
                   message: provider.errorMessage ?? 'Harcama yüklenemedi.',
-                  onRetry: () {
-                    // TODO [Developer 3]: Tekrar yükle
-                  },
+                  onRetry: () {},
                 );
               }
 
@@ -103,10 +90,7 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
                   const SizedBox(height: AppSpacing.xl),
 
                   // ── Bölüştürme Detayları ──────────────────────────────
-                  Text(
-                    'Bölüştürme',
-                    style: AppTextStyles.headlineSmall,
-                  ),
+                  Text('Bölüştürme', style: AppTextStyles.headlineSmall),
                   const SizedBox(height: AppSpacing.md),
                   if (expense.splits.isEmpty)
                     Text(
@@ -117,12 +101,13 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
                     )
                   else
                     ...expense.splits.map((split) {
-                      final member = context
-                          .watch<RoomProvider>()
-                          .currentRoom
-                          ?.members
-                          .where((m) => m.id == split.memberId)
-                          .firstOrNull;
+                      final member =
+                          context
+                              .watch<RoomProvider>()
+                              .currentRoom
+                              ?.members
+                              .where((m) => m.id == split.memberId)
+                              .firstOrNull;
 
                       return Padding(
                         padding: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -148,7 +133,6 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
                     const SizedBox(height: AppSpacing.xl),
                     Text('Fiş', style: AppTextStyles.headlineSmall),
                     const SizedBox(height: AppSpacing.md),
-                    // TODO [Developer 3]: CachedNetworkImage ile fotoğrafı göster.
                     ClipRRect(
                       borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                       child: Image.network(
