@@ -77,10 +77,9 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.home,
       name: 'home',
-      builder: (context, state) => const HomeScreen(),
+      builder: (context, state) => HomeScreen(errorMessage: state.extra as String?),
     ),
 
-    // ── Oda Yönetimi ─────────────────────────────────────────────────────────
     // ── Oda Yönetimi ─────────────────────────────────────────────────────────
     GoRoute(
       path: AppRoutes.createRoom,

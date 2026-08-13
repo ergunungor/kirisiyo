@@ -17,7 +17,8 @@ import '../../../shared/widgets/shared_widgets.dart';
 /// TODO [Developer 1]: Tasarım onaylandıktan sonra
 ///   arka plan animasyonu eklenebilir (flutter_animate ile).
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.errorMessage});   // ← errorMessage eklendi
+  final String? errorMessage;                          // ← eklendi
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +30,7 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              if (errorMessage != null) _buildErrorBanner(errorMessage!),
               const Spacer(flex: 2),
               _buildHeader(),
               const Spacer(flex: 1),
@@ -41,6 +43,35 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+  Widget _buildErrorBanner(String message) {                 // ← yeni metod
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.debtRed.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(color: AppColors.debtRed.withOpacity(0.4)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline_rounded,
+              color: AppColors.debtRed, size: 20),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              message,
+              style: AppTextStyles.bodySmall.copyWith(color: AppColors.debtRed),
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn().slideY(begin: -0.1, end: 0);
+  }
+
 
   Widget _buildHeader() {
     return Column(
