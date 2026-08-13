@@ -143,8 +143,12 @@ class RoomProvider extends ChangeNotifier {
 
   /// Aktif üyeyi seçer.
   Future<void> selectMember(MemberModel member) async {
+    try {
+      await _roomRepository.claimMember(member.id);
+    } catch (e) {
+      debugPrint('claimMember hatası: $e');
+    }
     _currentMember = member;
-
     await LocalStorageService.setString(
       AppConstants.prefCurrentMemberId,
       member.id,

@@ -203,10 +203,24 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
   void _addMember(BuildContext context, RoomProvider provider) {
     final name = _memberNameController.text.trim();
     if (name.isEmpty) return;
+
+    final countBefore = provider.pendingMemberNames.length;
     provider.addMemberName(name);
-    _memberNameController.clear();
+
+    if (provider.pendingMemberNames.length == countBefore) {
+      // Eklenmedi (isim boş, tekrarlı veya limit dolu)
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            provider.errorMessage ?? 'Bu isim eklenemedi.',
+          ),
+        ),
+      );
+    } else {
+      _memberNameController.clear();
+    }
     _memberNameFocusNode.requestFocus();
-  }
+}
 
   Future<void> _createRoom(BuildContext context, RoomProvider provider) async {
     if (!_formKey.currentState!.validate()) return;
