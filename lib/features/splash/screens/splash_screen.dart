@@ -5,6 +5,9 @@ import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
 import '../../../app/router.dart';
 import '../../../core/constants/app_constants.dart';
+import 'package:provider/provider.dart';    
+import '../../../core/services/local_storage_service.dart';     
+import '../../room/providers/room_provider.dart';        
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -21,11 +24,43 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _navigateToHome() async {
-    await Future.delayed(AppConstants.splashDuration);
-    if (mounted) {
-      context.go(AppRoutes.home);
-    }
+  await Future.delayed(AppConstants.splashDuration);
+  if (!mounted) return;
+
+  final savedRoomCode = LocalStorageService.getString(
+    AppConstants.prefCurrentRoomCode,
+  );
+
+  if (savedRoomCode == null) {
+    context.go(AppRoutes.home);
+    return;
   }
+
+  final roomProvider = context.read<RoomProvider>();
+  await roomProvider.loadRoomByCode(savedRoomCode);
+
+  if (!mounted) return;
+
+  if (roomProvider.hasError || roomProvider.currentRoom == null) {
+    // Oda artık yok / silinmiş → kirli kaydı temizle, home'a düş
+    await LocalStorageService.remove(AppConstants.prefCurrentRoomCode);
+    await LocalStorageService.remove(AppConstants.prefCurrentMemberId);
+    context.go(
+  AppRoutes.home,
+  extra: 'Bu oda artık mevcut değil. Silinmiş olabilir.',
+);
+    return;
+  }
+
+  if (roomProvider.currentMember == null) {
+    // Oda hâlâ var ama kayıtlı üye artık geçersiz → tekrar "kimsiniz?" sor
+    context.go(AppRoutes.selectMemberPath(savedRoomCode));
+    return;
+  }
+
+  // Her şey geçerli → direkt odaya düş
+  context.go(AppRoutes.roomDetailPath(savedRoomCode));
+}
 
   @override
   Widget build(BuildContext context) {
